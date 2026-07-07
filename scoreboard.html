@@ -289,7 +289,7 @@
     // WAJIB GANTI URL & KEY DI BAWAH INI SESUAI PROJECT SUPABASE ANDA
     const SUPABASE_URL = 'https://vbpldrhwkuhstvtdoebm.supabase.co/rest/v1/'; 
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZicGxkcmh3a3Voc3R2dGRvZWJtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMzOTUwOTIsImV4cCI6MjA5ODk3MTA5Mn0.mxbHlUuJqJAbNB1KR2Zo3htIDHfiiGA2NS0lAG_krW8'; 
-    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     // Ambil Court ID dari URL (Misal: scoreboard.html?court_id=1)
     const urlParams = new URLSearchParams(window.location.search);
@@ -301,24 +301,25 @@
     }
 
     // Fungsi Keluar dan Buka Kunci Lapangan
-    async function exitAndUnlock() {
+   async function exitAndUnlock() {
         if(confirm("Yakin ingin keluar? Lapangan akan dibuka untuk wasit lain.")) {
-            // Buka kunci dan hapus state dari database
-            await supabase
+            // Perbaikan: gunakan db.from
+            await db
                 .from('courts')
                 .update({ is_locked: false, match_state: null })
                 .eq('id', courtId);
             
             exitFullscreen();
-            window.location.href = 'index.html'; // Kembali ke halaman lobi
+            window.location.href = 'index.html';
         }
     }
 
     // Fungsi menyimpan status pertandingan terkini ke Supabase (Cloud Sync)
-    async function syncScoreToDatabase() {
+   async function syncScoreToDatabase() {
         if (!courtId) return;
         const currentState = { s: state, ms: matchState };
-        await supabase
+        // Perbaikan: gunakan db.from
+        await db
             .from('courts')
             .update({ match_state: JSON.stringify(currentState) })
             .eq('id', courtId);
