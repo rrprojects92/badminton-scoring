@@ -94,116 +94,171 @@
 
 <script>
     document.addEventListener("DOMContentLoaded", () => {
-        // --- UBAH DUA BARIS INI DENGAN DATA SUPABASE ANDA ---
-        const SUPABASE_URL = 'https://vbpldrhwkuhstvtdoebm.supabase.co'; 
-        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZicGxkcmh3a3Voc3R2dGRvZWJtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMzOTUwOTIsImV4cCI6MjA5ODk3MTA5Mn0.mxbHlUuJqJAbNB1KR2Zo3htIDHfiiGA2NS0lAG_krW8'; 
+    
+    // --- 1. UBAH DUA BARIS INI DENGAN DATA SUPABASE ANDA ---
+    const SUPABASE_URL = 'https://vbpldrhwkuhstvtdoebm.supabase.co'; 
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZicGxkcmh3a3Voc3R2dGRvZWJtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMzOTUwOTIsImV4cCI6MjA5ODk3MTA5Mn0.mxbHlUuJqJAbNB1KR2Zo3htIDHfiiGA2NS0lAG_krW8'; 
+    
+    const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const courtId = new URLSearchParams(window.location.search).get('court_id');
+
+    if (!courtId) { alert("Akses ilegal! Pilih lapangan dari lobi."); window.location.href = 'index.html'; }
+
+    // Fitur Supabase
+    window.exitAndUnlock = async function() {
+        if(confirm("Yakin ingin keluar? Lapangan akan dikosongkan.")) {
+            await db.from('courts').update({ is_locked: false, match_state: null }).eq('id', courtId);
+            window.location.href = 'index.html';
+        }
+    };
+    
+    async function syncScoreToDatabase() {
+        if (!courtId) return;
+        await db.from('courts').update({ match_state: JSON.stringify(window.state) }).eq('id', courtId);
+    }
+
+    window.startApp = function() {
+        let elem = document.documentElement;
+        if (elem.requestFullscreen) { elem.requestFullscreen(); } 
+        document.getElementById('start-screen').style.display = 'none';
+    };
+
+    // --- 2. LOGIKA PERTANDINGAN & POSISI ---
+    let WIN_SCORE = 21, MAX_SCORE = 30;
+    window.state = { scores: { L: 0, R: 0 }, servingTeam: null, players: { L: { right: "Pemain 1", left: "Pemain 2" }, R: { right: "Pemain 3", left: "Pemain 4" } }, gameFinished: false };
+    let historyStack = [];
+
+    window.updateRules = function() {
+        let mode = document.getElementById('game-mode').value;
+        WIN_SCORE = mode === "21" ? 21 : 42; MAX_SCORE = mode === "21" ? 30 : 50;
+        checkStatus();
+    };
+
+    // FUNGSI BARU: Membaca nama yang diketik wasit sebelum poin ditambah
+    function readPlayersFromUI() {
+        window.state.players.L.right = document.getElementById('player-L-right').value;
+        window.state.players.L.left = document.getElementById('player-L-left').value;
+        window.state.players.R.right = document.getElementById('player-R-right').value;
+        window.state.players.R.left = document.getElementById('player-R-left').value;
+    }
+
+    function saveState() { historyStack.push(JSON.stringify(window.state)); }
+
+    window.setFirstServe = function(team) { 
+        readPlayersFromUI(); // Baca dulu
+        saveState(); 
+        window.state.servingTeam = team; 
+        renderUI(); 
+        syncScoreToDatabase();
+    };
+
+    window.addPoint = function(teamWon) {
+        if (!window.state.servingTeam) { alert("Pilih servis pertama!"); return; }
+        if (window.state.gameFinished) return;
         
-        const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-        const courtId = new URLSearchParams(window.location.search).get('court_id');
+        readPlayersFromUI(); // Kunci penting agar nama tidak hilang/reset
+        saveState();
+        
+        if (window.state.servingTeam === teamWon) {
+            // ATURAN 1: Tim Servis Menang = Poin Nambah + Tukar Tempat (Kiri & Kanan)
+            window.state.scores[teamWon]++;
+            let temp = window.state.players[teamWon].right;
+            window.state.players[teamWon].right = window.state.players[teamWon].left;
+            window.state.players[teamWon].left = temp;
+        } else {
+            // ATURAN 2: Pindah Bola (Service Over) = Poin Nambah, Posisi TETAP
+            window.state.scores[teamWon]++; 
+            window.state.servingTeam = teamWon;
+        }
+        renderUI();
+        syncScoreToDatabase();
+    };
 
-        if (!courtId) { alert("Akses ilegal! Pilih lapangan dari lobi."); window.location.href = 'index.html'; }
+    window.undo = function() {
+        if (historyStack.length > 0) { 
+            window.state = JSON.parse(historyStack.pop()); 
+            renderUI(); 
+            syncScoreToDatabase();
+        }
+    };
 
-        window.exitAndUnlock = async function() {
-            if(confirm("Yakin ingin keluar?")) {
-                await db.from('courts').update({ is_locked: false }).eq('id', courtId);
-                window.location.href = 'index.html';
-            }
-        };
+    function renderUI() {
+        document.getElementById('score-L').innerText = window.state.scores.L;
+        document.getElementById('score-R').innerText = window.state.scores.R;
+        
+        // Tulis ulang nama pemain ke layar
+        document.getElementById('player-L-right').value = window.state.players.L.right;
+        document.getElementById('player-L-left').value = window.state.players.L.left;
+        document.getElementById('player-R-right').value = window.state.players.R.right;
+        document.getElementById('player-R-left').value = window.state.players.R.left;
 
-        window.startApp = function() {
-            let elem = document.documentElement;
-            if (elem.requestFullscreen) { elem.requestFullscreen(); } 
-            document.getElementById('start-screen').style.display = 'none';
-        };
-
-        let WIN_SCORE = 21, MAX_SCORE = 30;
-        window.state = { scores: { L: 0, R: 0 }, servingTeam: null, players: { L: { right: "P1", left: "P2" }, R: { right: "P3", left: "P4" } }, gameFinished: false };
-        let historyStack = [];
-
-        window.updateRules = function() {
-            let mode = document.getElementById('game-mode').value;
-            WIN_SCORE = mode === "21" ? 21 : 42; MAX_SCORE = mode === "21" ? 30 : 50;
-            checkStatus();
-        };
-
-        function saveState() { historyStack.push(JSON.stringify(window.state)); }
-
-        window.setFirstServe = function(team) { saveState(); window.state.servingTeam = team; renderUI(); };
-
-        window.addPoint = function(teamWon) {
-            if (!window.state.servingTeam) { alert("Pilih servis pertama!"); return; }
-            if (window.state.gameFinished) return;
-            saveState();
-            if (window.state.servingTeam === teamWon) {
-                window.state.scores[teamWon]++;
-                let temp = window.state.players[teamWon].right;
-                window.state.players[teamWon].right = window.state.players[teamWon].left;
-                window.state.players[teamWon].left = temp;
-            } else {
-                window.state.scores[teamWon]++; window.state.servingTeam = teamWon;
-            }
-            renderUI();
-        };
-
-        window.undo = function() {
-            if (historyStack.length > 0) { window.state = JSON.parse(historyStack.pop()); renderUI(); }
-        };
-
-        function renderUI() {
-            document.getElementById('score-L').innerText = window.state.scores.L;
-            document.getElementById('score-R').innerText = window.state.scores.R;
-            document.querySelectorAll('.court-half').forEach(b => b.classList.remove('active-server'));
-            
-            if (!window.state.servingTeam && !window.state.gameFinished) {
-                document.getElementById('btn-serve-L').style.display = 'block'; document.getElementById('btn-serve-R').style.display = 'block';
-            } else {
-                document.getElementById('btn-serve-L').style.display = 'none'; document.getElementById('btn-serve-R').style.display = 'none';
-            }
-
-            if (window.state.servingTeam && !window.state.gameFinished) {
-                let currentScore = window.state.scores[window.state.servingTeam];
-                let activeSide = (currentScore % 2 === 0) ? 'right' : 'left';
-                document.getElementById(`box-${window.state.servingTeam}-${activeSide}`).classList.add('active-server');
-            }
-            checkStatus();
+        document.querySelectorAll('.court-half').forEach(b => b.classList.remove('active-server'));
+        
+        if (!window.state.servingTeam && !window.state.gameFinished) {
+            document.getElementById('btn-serve-L').style.display = 'block'; document.getElementById('btn-serve-R').style.display = 'block';
+        } else {
+            document.getElementById('btn-serve-L').style.display = 'none'; document.getElementById('btn-serve-R').style.display = 'none';
         }
 
-        function checkStatus() {
-            let status = document.getElementById('status-text');
-            if(!window.state.servingTeam && !window.state.gameFinished) { status.innerText = `Pilih Servis 0-0`; return; }
-            let diff = Math.abs(window.state.scores.L - window.state.scores.R);
-            window.state.gameFinished = false;
-
-            if (window.state.scores.L >= WIN_SCORE - 1 && window.state.scores.R >= WIN_SCORE - 1 && diff === 0) {
-                status.innerText = "🔥 DEUCE (JUS) 🔥";
-            } else if ((window.state.scores.L >= WIN_SCORE || window.state.scores.R >= WIN_SCORE) && diff >= 2 || (window.state.scores.L === MAX_SCORE || window.state.scores.R === MAX_SCORE)) {
-                status.innerText = `🏆 SET SELESAI`; window.state.gameFinished = true;
-            } else { status.innerText = `Pertandingan Berjalan`; }
+        // Tentukan kotak mana yang nyala (Ganjil/Genap)
+        if (window.state.servingTeam && !window.state.gameFinished) {
+            let currentScore = window.state.scores[window.state.servingTeam];
+            let activeSide = (currentScore % 2 === 0) ? 'right' : 'left';
+            document.getElementById(`box-${window.state.servingTeam}-${activeSide}`).classList.add('active-server');
         }
+        checkStatus();
+    }
 
-        window.swapCourtsUI = function() {
-            saveState();
-            let nameL = document.getElementById('name-L').value; let nameR = document.getElementById('name-R').value;
-            document.getElementById('name-L').value = nameR; document.getElementById('name-R').value = nameL;
-            let tempScore = window.state.scores.L; window.state.scores.L = window.state.scores.R; window.state.scores.R = tempScore;
-            if(window.state.servingTeam === 'L') window.state.servingTeam = 'R'; else if(window.state.servingTeam === 'R') window.state.servingTeam = 'L';
+    function checkStatus() {
+        let status = document.getElementById('status-text');
+        if(!window.state.servingTeam && !window.state.gameFinished) { status.innerText = `Pilih Servis 0-0 di Lapangan`; return; }
+        
+        let diff = Math.abs(window.state.scores.L - window.state.scores.R);
+        window.state.gameFinished = false;
+
+        if (window.state.scores.L >= WIN_SCORE - 1 && window.state.scores.R >= WIN_SCORE - 1 && diff === 0) {
+            status.innerText = "🔥 DEUCE (JUS) 🔥";
+        } else if ((window.state.scores.L >= WIN_SCORE || window.state.scores.R >= WIN_SCORE) && diff >= 2 || (window.state.scores.L === MAX_SCORE || window.state.scores.R === MAX_SCORE)) {
+            let winnerTeam = window.state.scores.L > window.state.scores.R ? 'L' : 'R';
+            let winnerName = winnerTeam === 'L' ? document.getElementById('name-L').value : document.getElementById('name-R').value;
+            status.innerText = `🏆 SET SELESAI. PEMENANG: ${winnerName}`; 
+            window.state.gameFinished = true;
+        } else { 
+            status.innerText = `Pertandingan Berjalan`; 
+        }
+    }
+
+    window.swapCourtsUI = function() {
+        readPlayersFromUI();
+        saveState();
+        let nameL = document.getElementById('name-L').value; let nameR = document.getElementById('name-R').value;
+        document.getElementById('name-L').value = nameR; document.getElementById('name-R').value = nameL;
+        
+        let tempScore = window.state.scores.L; window.state.scores.L = window.state.scores.R; window.state.scores.R = tempScore;
+        let tempPlayers = window.state.players.L; window.state.players.L = window.state.players.R; window.state.players.R = tempPlayers;
+        
+        if(window.state.servingTeam === 'L') window.state.servingTeam = 'R'; 
+        else if(window.state.servingTeam === 'R') window.state.servingTeam = 'L';
+        
+        renderUI();
+        syncScoreToDatabase();
+    };
+
+    window.resetMatch = function() {
+        if(confirm("Reset pertandingan ke 0-0?")) {
+            historyStack = [];
+            window.state = { scores: { L: 0, R: 0 }, servingTeam: null, players: { L: { right: "Pemain 1", left: "Pemain 2" }, R: { right: "Pemain 3", left: "Pemain 4" } }, gameFinished: false };
             renderUI();
-        };
+            syncScoreToDatabase();
+        }
+    };
 
-        window.resetMatch = function() {
-            if(confirm("Reset ke awal?")) {
-                historyStack = [];
-                window.state = { scores: { L: 0, R: 0 }, servingTeam: null, players: { L: { right: "P1", left: "P2" }, R: { right: "P3", left: "P4" } }, gameFinished: false };
-                renderUI();
-            }
-        };
-
-        // Timer Logic
-        let timerInterval, timeSeconds = 0, isTimerRunning = false;
-        window.startTimer = function() { if (!isTimerRunning) { isTimerRunning = true; timerInterval = setInterval(() => { timeSeconds++; document.getElementById('timer-display').innerText = `${Math.floor(timeSeconds / 60).toString().padStart(2, '0')}:${(timeSeconds % 60).toString().padStart(2, '0')}`; }, 1000); } };
-        window.pauseTimer = function() { isTimerRunning = false; clearInterval(timerInterval); };
-        window.resetTimer = function() { window.pauseTimer(); timeSeconds = 0; document.getElementById('timer-display').innerText = "00:00"; };
-    });
+    // --- 3. TIMER LOGIC ---
+    let timerInterval, timeSeconds = 0, isTimerRunning = false;
+    window.startTimer = function() { if (!isTimerRunning) { isTimerRunning = true; timerInterval = setInterval(() => { timeSeconds++; document.getElementById('timer-display').innerText = `${Math.floor(timeSeconds / 60).toString().padStart(2, '0')}:${(timeSeconds % 60).toString().padStart(2, '0')}`; }, 1000); } };
+    window.pauseTimer = function() { isTimerRunning = false; clearInterval(timerInterval); };
+    window.resetTimer = function() { window.pauseTimer(); timeSeconds = 0; document.getElementById('timer-display').innerText = "00:00"; };
+});
 </script>
 </body>
 </html>
