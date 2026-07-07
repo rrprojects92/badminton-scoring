@@ -3,551 +3,207 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Scoring Badminton Pro v6 - Cloud Sync</title>
-    
+    <title>Scoreboard Badminton</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    
     <style>
         :root { --primary: #10b981; --dark: #111827; --panel: #1f2937; --court-bg: #059669; --court-line: #064e3b; }
-        
-        html, body {
-            margin: 0; padding: 0; width: 100vw; height: 100vh;
-            background-color: var(--dark); color: white;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            overflow: hidden; box-sizing: border-box;
-        }
+        html, body { margin: 0; padding: 0; width: 100vw; height: 100vh; background-color: var(--dark); color: white; font-family: sans-serif; overflow: hidden; box-sizing: border-box; }
         * { box-sizing: border-box; }
-
-        /* Start Screen */
-        #start-screen {
-            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-            background: rgba(17, 24, 39, 0.95); z-index: 99999;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-        }
-        .btn-start {
-            background: var(--primary); color: white; border: none; padding: 20px 40px;
-            font-size: 1.5rem; font-weight: bold; border-radius: 10px; cursor: pointer;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3); transition: 0.2s;
-        }
-        .btn-start:active { transform: scale(0.95); }
-
-        #portrait-warning {
-            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: var(--dark); color: #fcd34d; z-index: 100000;
-            align-items: center; justify-content: center; text-align: center;
-            flex-direction: column; padding: 20px; font-size: 1.5rem; font-weight: bold;
-        }
-        @media (orientation: portrait) {
-            #portrait-warning { display: flex; }
-            #start-screen, .container { display: none !important; }
-        }
-
-        .container {
-            display: flex; flex-direction: column; justify-content: space-between;
-            width: 100%; height: 100%; max-width: 1400px; margin: 0 auto; padding: 8px;
-        }
-
-        /* Top Bar */
-        .top-bar {
-            display: flex; justify-content: space-between; align-items: center;
-            background-color: var(--panel); padding: 8px 15px; border-radius: 8px; gap: 10px;
-            height: 12%; min-height: 40px;
-        }
+        #start-screen { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(17,24,39,0.95); z-index: 99999; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .btn-start { background: var(--primary); color: white; border: none; padding: 20px 40px; font-size: 1.5rem; font-weight: bold; border-radius: 10px; cursor: pointer; }
+        #portrait-warning { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--dark); color: #fcd34d; z-index: 100000; align-items: center; justify-content: center; text-align: center; flex-direction: column; padding: 20px; font-size: 1.5rem; }
+        @media (orientation: portrait) { #portrait-warning { display: flex; } #start-screen, .container { display: none !important; } }
+        .container { display: flex; flex-direction: column; justify-content: space-between; width: 100%; height: 100%; max-width: 1400px; margin: 0 auto; padding: 8px; }
+        .top-bar { display: flex; justify-content: space-between; align-items: center; background-color: var(--panel); padding: 8px 15px; border-radius: 8px; gap: 10px; height: 12%; }
         .settings-group { display: flex; flex-direction: column; gap: 2px; flex: 1; }
         .settings-group label { font-size: 0.7rem; color: #9ca3af; }
-        .settings-group select, .settings-group input {
-            padding: 4px; border-radius: 4px; border: 1px solid #4b5563; background: var(--dark); color: white;
-            font-size: 0.8rem; width: 100%;
-        }
-        
-        .timer-container {
-            flex: 1; text-align: center; background: #000; padding: 4px 10px;
-            border-radius: 6px; border: 1px solid #374151; display: flex; flex-direction: column; justify-content: center;
-        }
+        .settings-group select, .settings-group input { padding: 4px; border-radius: 4px; border: 1px solid #4b5563; background: var(--dark); color: white; font-size: 0.8rem; width: 100%; }
+        .timer-container { flex: 1; text-align: center; background: #000; padding: 4px; border-radius: 6px; border: 1px solid #374151; display: flex; flex-direction: column; justify-content: center; }
         .timer-display { font-size: 1.2rem; font-weight: bold; font-family: monospace; color: #10b981; margin-bottom: 2px;}
         .timer-controls { display: flex; justify-content: center; gap: 5px; }
-        .timer-controls button { background: #374151; color: white; border: none; padding: 2px 8px; border-radius: 4px; cursor: pointer; font-size: 0.7rem; }
-
-        /* Scoreboard (Lapangan Utama) */
-        .scoreboard {
-            display: flex; justify-content: space-between; background-color: var(--court-bg);
-            padding: 10px; border-radius: 10px; position: relative;
-            height: 65%; margin: 8px 0; border: 4px solid white;
-        }
-        
-        /* NET Pembatas Tengah */
-        .net-divider {
-            width: 8px; background: repeating-linear-gradient(to bottom, #cbd5e1, #cbd5e1 4px, transparent 4px, transparent 8px);
-            border-left: 2px solid white; border-right: 2px solid white; height: 100%; opacity: 0.8; margin: 0 10px;
-        }
-
-        .tv-widget {
-            position: absolute; top: -15px; left: 10px; background: rgba(0,0,0,0.85);
-            padding: 4px 8px; border-radius: 4px; border-left: 3px solid #fcd34d;
-            font-family: monospace; font-size: 0.75rem; color: white; z-index: 10;
-        }
-        .tv-row { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 2px; }
-        .tv-row.active-set { color: #fcd34d; font-weight: bold; }
-
-        .team {
-            flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: space-between;
-            width: 48%; position: relative;
-        }
-        
-        .team-name-input {
-            background: rgba(0,0,0,0.4); border: none; border-bottom: 2px solid #fcd34d; border-radius: 5px 5px 0 0;
-            color: white; text-align: center; font-size: clamp(1rem, 4vh, 1.3rem); font-weight: bold; 
-            width: 100%; text-transform: uppercase; padding: 5px; margin-bottom: 5px;
-        }
-
-        /* LAYOUT LAPANGAN */
-        .real-court {
-            display: flex; flex-direction: column; width: 100%; flex: 1;
-            border: 2px solid white; background-color: var(--court-line); margin-bottom: 5px;
-        }
-        .court-half {
-            flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
-            position: relative; padding: 5px; transition: 0.3s;
-        }
+        .timer-controls button { background: #374151; color: white; border: none; padding: 2px 8px; border-radius: 4px; cursor: pointer; }
+        .scoreboard { display: flex; justify-content: space-between; background-color: var(--court-bg); padding: 10px; border-radius: 10px; position: relative; height: 65%; margin: 8px 0; border: 4px solid white; }
+        .net-divider { width: 8px; background: repeating-linear-gradient(to bottom, #cbd5e1, #cbd5e1 4px, transparent 4px, transparent 8px); border-left: 2px solid white; border-right: 2px solid white; height: 100%; margin: 0 10px; }
+        .team { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: space-between; width: 48%; position: relative; }
+        .team-name-input { background: rgba(0,0,0,0.4); border: none; border-bottom: 2px solid #fcd34d; border-radius: 5px 5px 0 0; color: white; text-align: center; font-size: clamp(1rem, 4vh, 1.3rem); font-weight: bold; width: 100%; text-transform: uppercase; padding: 5px; margin-bottom: 5px; }
+        .real-court { display: flex; flex-direction: column; width: 100%; flex: 1; border: 2px solid white; background-color: var(--court-line); margin-bottom: 5px; }
+        .court-half { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; padding: 5px; transition: 0.3s; }
         .court-half.border-middle { border-top: 2px dashed rgba(255,255,255,0.7); }
         .court-half.active-server { background: rgba(253, 224, 71, 0.25); box-shadow: inset 0 0 10px #fde047; }
-        
-        .court-label {
-            position: absolute; top: 3px; left: 5px; font-size: 0.55rem; color: rgba(255,255,255,0.6); font-weight: bold; letter-spacing: 1px;
-        }
-        .serve-badge {
-            display: none; position: absolute; top: 3px; right: 5px; background: #fde047; color: black; font-size: 0.6rem; font-weight: bold; padding: 2px 6px; border-radius: 4px;
-        }
+        .court-label { position: absolute; top: 3px; left: 5px; font-size: 0.55rem; color: rgba(255,255,255,0.6); font-weight: bold; }
+        .serve-badge { display: none; position: absolute; top: 3px; right: 5px; background: #fde047; color: black; font-size: 0.6rem; font-weight: bold; padding: 2px 6px; border-radius: 4px; }
         .active-server .serve-badge { display: block; }
-        
         .player-input { background: transparent; border: none; border-bottom: 1px solid rgba(255,255,255,0.4); color: white; text-align: center; width: 80%; font-size: clamp(0.8rem, 2.5vh, 1rem); font-weight: bold; z-index: 2;}
-        .player-input:focus { outline: none; border-bottom-color: white; }
-
-        .btn-first-serve {
-            background: #f59e0b; color: white; border: none; padding: 4px 10px; border-radius: 4px; 
-            font-size: 0.7rem; font-weight: bold; margin-top: 5px; cursor: pointer; z-index: 2;
-            animation: pulse 1.5s infinite; box-shadow: 0 0 5px rgba(0,0,0,0.5);
-        }
+        .btn-first-serve { background: #f59e0b; color: white; border: none; padding: 4px 10px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; margin-top: 5px; cursor: pointer; z-index: 2; animation: pulse 1.5s infinite; }
         @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
-
-        .score-row {
-            display: flex; align-items: center; justify-content: space-between; width: 100%; gap: 10px;
-        }
-        .score { font-size: clamp(2.5rem, 18vh, 8rem); font-weight: bold; line-height: 0.8; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); width: 40%; text-align: center;}
-        .btn-point { background: #3b82f6; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: clamp(0.9rem, 3vh, 1.2rem); padding: 10px; flex: 1; height: 100%; box-shadow: 0 4px 0 #2563eb;}
-        .btn-point:active { transform: translateY(4px); box-shadow: none; }
-        
-        /* Status Panel */
+        .score-row { display: flex; align-items: center; justify-content: space-between; width: 100%; gap: 10px; }
+        .score { font-size: clamp(2.5rem, 18vh, 8rem); font-weight: bold; line-height: 0.8; width: 40%; text-align: center;}
+        .btn-point { background: #3b82f6; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: clamp(0.9rem, 3vh, 1.2rem); padding: 10px; flex: 1; height: 100%; }
         .status-panel { text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 8%; min-height: 30px;}
         #status-text { font-size: clamp(0.9rem, 3vh, 1.2rem); font-weight: bold; color: #fcd34d;}
         #btn-next-set { display: none; background: #10b981; color: white; padding: 8px 15px; border: none; border-radius: 5px; font-weight: bold; cursor: pointer;}
-
-        /* Bottom Controls */
-        .bottom-controls { display: flex; gap: 10px; justify-content: center; align-items: center; background: var(--panel); padding: 8px; border-radius: 8px; height: 10%; min-height: 40px;}
-        .btn-bottom { padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 0.8rem; transition: 0.2s; white-space: nowrap; }
-        .shuttle-box { display: flex; align-items: center; gap: 5px; background: #374151; padding: 4px 8px; border-radius: 4px; }
-        .shuttle-box button { background: #4b5563; color: white; border: none; border-radius: 50%; width: 25px; height: 25px; cursor: pointer; font-size: 0.9rem;}
-        #shuttle-count { font-weight: bold; font-size: 1rem; width: 20px; text-align: center; }
-
-        #pdf-recap { display: none; background: white; color: black; padding: 40px; width: 100%; height: auto;}
+        .bottom-controls { display: flex; gap: 10px; justify-content: center; align-items: center; background: var(--panel); padding: 8px; border-radius: 8px; height: 10%; }
+        .btn-bottom { padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 0.8rem; }
     </style>
 </head>
 <body>
 
-<div id="portrait-warning">
-    <div style="font-size: 3rem; margin-bottom: 20px;">🔄</div>
-    Mohon putar layar ke posisi Landscape (Mendatar).
-</div>
-
-<div id="start-screen">
-    <h1 style="color: #10b981; margin-bottom: 10px;">🏸 Scoring Badminton Pro</h1>
-    <p style="margin-bottom: 30px; color: #9ca3af; text-align: center;">Masuk ke Layar Penuh (Fullscreen) untuk tata letak lapangan yang sempurna.</p>
-    <button class="btn-start" onclick="startApp()">Mulai Pertandingan</button>
-</div>
+<div id="portrait-warning">🔄<br>Putar layar ke Landscape.</div>
+<div id="start-screen"><button class="btn-start" onclick="startApp()">Mulai Pertandingan</button></div>
 
 <div class="container" id="main-app">
     <div class="top-bar">
-        <div class="settings-group" style="flex: 0.8;">
-            <label>Mode Poin</label>
-            <select id="game-mode" onchange="updateRules()">
-                <option value="21">Standar (21)</option>
-                <option value="42">Custom (42)</option>
-            </select>
-        </div>
-        <div class="settings-group">
-            <label>Wasit</label>
-            <input type="text" id="officials" placeholder="Nama Wasit & Hakim">
-        </div>
-
-        <div class="timer-container">
-            <div class="timer-display" id="timer-display">00:00</div>
-            <div class="timer-controls">
-                <button onclick="startTimer()">▶</button>
-                <button onclick="pauseTimer()">⏸</button>
-                <button onclick="resetTimer()">⏹</button>
-            </div>
-        </div>
-
+        <div class="settings-group" style="flex: 0.8;"><label>Mode Poin</label><select id="game-mode" onchange="updateRules()"><option value="21">Standar (21)</option><option value="42">Custom (42)</option></select></div>
+        <div class="settings-group"><label>Wasit</label><input type="text" id="officials" placeholder="Nama Wasit"></div>
+        <div class="timer-container"><div class="timer-display" id="timer-display">00:00</div><div class="timer-controls"><button onclick="startTimer()">▶</button><button onclick="pauseTimer()">⏸</button><button onclick="resetTimer()">⏹</button></div></div>
         <button class="btn-bottom" style="background:#f59e0b; color:white; height: 100%;" onclick="undo()">↩️ Undo</button>
-        <button class="btn-bottom" style="background:#ef4444; color:white; height: 100%; font-size: 1rem;" onclick="exitAndUnlock()">🚪 Keluar Laga</button>
+        <button class="btn-bottom" style="background:#ef4444; color:white; height: 100%; font-size: 1rem;" onclick="exitAndUnlock()">🚪 Keluar</button>
     </div>
 
     <div class="scoreboard" id="scoreboard">
-        <div class="tv-widget" id="tv-widget"></div>
-
         <div class="team" id="team-L">
             <input type="text" class="team-name-input" id="name-L" value="TIM A">
             <div class="real-court">
-                <div class="court-half" id="box-L-left">
-                    <span class="court-label">KIRI (GANJIL)</span>
-                    <span class="serve-badge">🏸 Servis</span>
-                    <input type="text" class="player-input" id="player-L-left" placeholder="Pemain 2">
-                </div>
-                <div class="court-half border-middle" id="box-L-right">
-                    <span class="court-label">KANAN (GENAP)</span>
-                    <span class="serve-badge">🏸 Servis</span>
-                    <input type="text" class="player-input" id="player-L-right" placeholder="Pemain 1">
-                    <button class="btn-first-serve" id="btn-serve-L" onclick="setFirstServe('L')">Mulai Servis 0-0</button>
-                </div>
+                <div class="court-half" id="box-L-left"><span class="court-label">KIRI (GANJIL)</span><span class="serve-badge">🏸 Servis</span><input type="text" class="player-input" id="player-L-left" placeholder="Pemain 2"></div>
+                <div class="court-half border-middle" id="box-L-right"><span class="court-label">KANAN (GENAP)</span><span class="serve-badge">🏸 Servis</span><input type="text" class="player-input" id="player-L-right" placeholder="Pemain 1"><button class="btn-first-serve" id="btn-serve-L" onclick="setFirstServe('L')">Mulai Servis 0-0</button></div>
             </div>
-            <div class="score-row">
-                <div class="score" id="score-L">0</div>
-                <button class="btn-point" onclick="addPoint('L')">+1 POIN KIRI</button>
-            </div>
+            <div class="score-row"><div class="score" id="score-L">0</div><button class="btn-point" onclick="addPoint('L')">+1 POIN KIRI</button></div>
         </div>
-
         <div class="net-divider"></div>
-
         <div class="team" id="team-R">
             <input type="text" class="team-name-input" id="name-R" value="TIM B">
             <div class="real-court">
-                <div class="court-half" id="box-R-right">
-                    <span class="court-label">KANAN (GENAP)</span>
-                    <span class="serve-badge">🏸 Servis</span>
-                    <input type="text" class="player-input" id="player-R-right" placeholder="Pemain 3">
-                    <button class="btn-first-serve" id="btn-serve-R" onclick="setFirstServe('R')">Mulai Servis 0-0</button>
-                </div>
-                <div class="court-half border-middle" id="box-R-left">
-                    <span class="court-label">KIRI (GANJIL)</span>
-                    <span class="serve-badge">🏸 Servis</span>
-                    <input type="text" class="player-input" id="player-R-left" placeholder="Pemain 4">
-                </div>
+                <div class="court-half" id="box-R-right"><span class="court-label">KANAN (GENAP)</span><span class="serve-badge">🏸 Servis</span><input type="text" class="player-input" id="player-R-right" placeholder="Pemain 3"><button class="btn-first-serve" id="btn-serve-R" onclick="setFirstServe('R')">Mulai Servis 0-0</button></div>
+                <div class="court-half border-middle" id="box-R-left"><span class="court-label">KIRI (GANJIL)</span><span class="serve-badge">🏸 Servis</span><input type="text" class="player-input" id="player-R-left" placeholder="Pemain 4"></div>
             </div>
-            <div class="score-row">
-                <button class="btn-point" onclick="addPoint('R')">+1 POIN KANAN</button>
-                <div class="score" id="score-R">0</div>
-            </div>
+            <div class="score-row"><button class="btn-point" onclick="addPoint('R')">+1 POIN KANAN</button><div class="score" id="score-R">0</div></div>
         </div>
     </div>
 
     <div class="status-panel">
-        <span id="status-text">Siapkan Posisi & Klik "Mulai Servis 0-0" di kotak yang melayani</span>
-        <button id="btn-next-set" onclick="startNextSet()">Lanjut Set Berikutnya ➡️</button>
+        <span id="status-text">Siapkan Posisi & Klik "Mulai Servis 0-0" di lapangan</span>
+        <button id="btn-next-set" onclick="startNextSet()">Lanjut Set ➡️</button>
     </div>
 
     <div class="bottom-controls">
-        <div class="shuttle-box">
-            <span style="font-size: 0.8rem; color:#9ca3af;">Kok:</span>
-            <button onclick="changeShuttle(-1)">-</button>
-            <span id="shuttle-count">0</span>
-            <button onclick="changeShuttle(1)">+</button>
-        </div>
         <button class="btn-bottom" style="background:#3b82f6; color:white;" onclick="swapCourtsUI()">🔄 Tukar Lapangan</button>
         <button class="btn-bottom" style="background:#374151; color:white;" onclick="resetMatch()">🗑️ Reset Laga</button>
-        <button class="btn-bottom" style="background:#10b981; color:white;" onclick="downloadPDF()">📄 Rekapan PDF</button>
     </div>
-</div>
-
-<div id="pdf-recap">
-    <h1 style="text-align: center; border-bottom: 2px solid black; padding-bottom: 10px;">REKAPAN HASIL PERTANDINGAN</h1>
-    <div style="margin-top: 20px; font-size: 1.2em;">
-        <p><strong>Wasit / Hakim:</strong> <span id="pdf-officials"></span></p>
-        <p><strong>Durasi Main:</strong> <span id="pdf-duration"></span></p>
-        <p><strong>Kok Terpakai:</strong> <span id="pdf-shuttle"></span> buah</p>
-    </div>
-    <div style="display: flex; justify-content: space-around; margin-top: 30px; text-align: center; font-size: 1.2em;">
-        <div style="width: 45%;"><h2 id="pdf-teamA"></h2><p id="pdf-playersA"></p></div>
-        <div style="width: 10%;"><h2>VS</h2></div>
-        <div style="width: 45%;"><h2 id="pdf-teamB"></h2><p id="pdf-playersB"></p></div>
-    </div>
-    <table style="width: 100%; margin-top: 30px; border-collapse: collapse; text-align: center; font-size: 1.5em;">
-        <thead>
-            <tr style="background-color: #f3f4f6;">
-                <th style="border: 1px solid #000; padding: 10px;">SET</th>
-                <th style="border: 1px solid #000; padding: 10px;">SKOR KIRI</th>
-                <th style="border: 1px solid #000; padding: 10px;">SKOR KANAN</th>
-            </tr>
-        </thead>
-        <tbody id="pdf-score-table"></tbody>
-    </table>
-    <div style="text-align: center; margin-top: 50px;"><h2 id="pdf-winner" style="color: #059669; font-size: 2em;"></h2></div>
 </div>
 
 <script>
-    // --- 1. KONFIGURASI SUPABASE ---
-    // WAJIB GANTI URL & KEY DI BAWAH INI SESUAI PROJECT SUPABASE ANDA
-    const SUPABASE_URL = 'https://vbpldrhwkuhstvtdoebm.supabase.co/rest/v1/'; 
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZicGxkcmh3a3Voc3R2dGRvZWJtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMzOTUwOTIsImV4cCI6MjA5ODk3MTA5Mn0.mxbHlUuJqJAbNB1KR2Zo3htIDHfiiGA2NS0lAG_krW8'; 
-    const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    document.addEventListener("DOMContentLoaded", () => {
+        // --- UBAH DUA BARIS INI DENGAN DATA SUPABASE ANDA ---
+        const SUPABASE_URL = 'https://vbpldrhwkuhstvtdoebm.supabase.co/rest/v1/'; 
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZicGxkcmh3a3Voc3R2dGRvZWJtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMzOTUwOTIsImV4cCI6MjA5ODk3MTA5Mn0.mxbHlUuJqJAbNB1KR2Zo3htIDHfiiGA2NS0lAG_krW8'; 
+        
+        const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        const courtId = new URLSearchParams(window.location.search).get('court_id');
 
-    // Ambil Court ID dari URL (Misal: scoreboard.html?court_id=1)
-    const urlParams = new URLSearchParams(window.location.search);
-    const courtId = urlParams.get('court_id');
+        if (!courtId) { alert("Akses ilegal! Pilih lapangan dari lobi."); window.location.href = 'index.html'; }
 
-    if (!courtId) {
-        alert("Akses ilegal! Anda harus memilih lapangan melalui Lobi.");
-        window.location.href = 'index.html';
-    }
+        window.exitAndUnlock = async function() {
+            if(confirm("Yakin ingin keluar?")) {
+                await db.from('courts').update({ is_locked: false }).eq('id', courtId);
+                window.location.href = 'index.html';
+            }
+        };
 
-    // Fungsi Keluar dan Buka Kunci Lapangan
-   async function exitAndUnlock() {
-        if(confirm("Yakin ingin keluar? Lapangan akan dibuka untuk wasit lain.")) {
-            // Perbaikan: gunakan db.from
-            await db
-                .from('courts')
-                .update({ is_locked: false, match_state: null })
-                .eq('id', courtId);
-            
-            exitFullscreen();
-            window.location.href = 'index.html';
-        }
-    }
+        window.startApp = function() {
+            let elem = document.documentElement;
+            if (elem.requestFullscreen) { elem.requestFullscreen(); } 
+            document.getElementById('start-screen').style.display = 'none';
+        };
 
-    // Fungsi menyimpan status pertandingan terkini ke Supabase (Cloud Sync)
-   async function syncScoreToDatabase() {
-        if (!courtId) return;
-        const currentState = { s: state, ms: matchState };
-        // Perbaikan: gunakan db.from
-        await db
-            .from('courts')
-            .update({ match_state: JSON.stringify(currentState) })
-            .eq('id', courtId);
-    }
+        let WIN_SCORE = 21, MAX_SCORE = 30;
+        window.state = { scores: { L: 0, R: 0 }, servingTeam: null, players: { L: { right: "P1", left: "P2" }, R: { right: "P3", left: "P4" } }, gameFinished: false };
+        let historyStack = [];
 
+        window.updateRules = function() {
+            let mode = document.getElementById('game-mode').value;
+            WIN_SCORE = mode === "21" ? 21 : 42; MAX_SCORE = mode === "21" ? 30 : 50;
+            checkStatus();
+        };
 
-    // --- 2. FUNGSI FULLSCREEN ---
-    function startApp() {
-        let elem = document.documentElement;
-        if (elem.requestFullscreen) { elem.requestFullscreen(); } 
-        else if (elem.webkitRequestFullscreen) { elem.webkitRequestFullscreen(); }
-        else if (elem.msRequestFullscreen) { elem.msRequestFullscreen(); }
-        document.getElementById('start-screen').style.display = 'none';
-    }
+        function saveState() { historyStack.push(JSON.stringify(window.state)); }
 
-    function exitFullscreen() {
-        if (document.exitFullscreen) { document.exitFullscreen(); } 
-        else if (document.webkitExitFullscreen) { document.webkitExitFullscreen(); }
-        else if (document.msExitFullscreen) { document.msExitFullscreen(); }
-        document.getElementById('start-screen').style.display = 'flex';
-    }
+        window.setFirstServe = function(team) { saveState(); window.state.servingTeam = team; renderUI(); };
 
-
-    // --- 3. LOGIKA PERTANDINGAN BADMINTON ---
-    let WIN_SCORE = 21, MAX_SCORE = 30;
-    let matchState = { currentSet: 1, setHistory: [] };
-    let state = {
-        scores: { L: 0, R: 0 }, servingTeam: null,
-        players: { L: { right: "Pemain 1", left: "Pemain 2" }, R: { right: "Pemain 3", left: "Pemain 4" } },
-        shuttlecocks: 0, gameFinished: false
-    };
-    let historyStack = [];
-    let timerInterval = null, timeSeconds = 0, isTimerRunning = false;
-
-    function updateRules() {
-        let mode = document.getElementById('game-mode').value;
-        if(mode === "21") { WIN_SCORE = 21; MAX_SCORE = 30; } else { WIN_SCORE = 42; MAX_SCORE = 50; }
-        checkStatus();
-    }
-
-    function saveStateToHistory() {
-        state.players.L.right = document.getElementById('player-L-right').value;
-        state.players.L.left = document.getElementById('player-L-left').value;
-        state.players.R.right = document.getElementById('player-R-right').value;
-        state.players.R.left = document.getElementById('player-R-left').value;
-        historyStack.push(JSON.stringify({ s: state, ms: matchState }));
-    }
-
-    function setFirstServe(team) {
-        saveStateToHistory();
-        state.servingTeam = team;
-        if(!isTimerRunning) startTimer();
-        renderUI();
-        syncScoreToDatabase();
-    }
-
-    function addPoint(teamWon) {
-        if (!state.servingTeam) { alert("Tekan tombol 'Mulai Servis 0-0' di lapangan terlebih dahulu!"); return; }
-        if (state.gameFinished) return; 
-        saveStateToHistory();
-        if (state.servingTeam === teamWon) {
-            state.scores[teamWon]++;
-            let temp = state.players[teamWon].right;
-            state.players[teamWon].right = state.players[teamWon].left;
-            state.players[teamWon].left = temp;
-        } else {
-            state.scores[teamWon]++;
-            state.servingTeam = teamWon;
-        }
-        renderUI();
-        syncScoreToDatabase();
-    }
-
-    function undo() {
-        if (historyStack.length > 0) {
-            let previous = JSON.parse(historyStack.pop());
-            state = previous.s; matchState = previous.ms;
+        window.addPoint = function(teamWon) {
+            if (!window.state.servingTeam) { alert("Pilih servis pertama!"); return; }
+            if (window.state.gameFinished) return;
+            saveState();
+            if (window.state.servingTeam === teamWon) {
+                window.state.scores[teamWon]++;
+                let temp = window.state.players[teamWon].right;
+                window.state.players[teamWon].right = window.state.players[teamWon].left;
+                window.state.players[teamWon].left = temp;
+            } else {
+                window.state.scores[teamWon]++; window.state.servingTeam = teamWon;
+            }
             renderUI();
-            syncScoreToDatabase();
-        } else { alert("Tidak ada riwayat untuk di-undo."); }
-    }
+        };
 
-    function renderTVWidget() {
-        let widget = document.getElementById('tv-widget');
-        let html = '';
-        matchState.setHistory.forEach(set => { html += `<div class="tv-row"><span>SET ${set.set}</span> <span>${set.scoreL} - ${set.scoreR}</span></div>`; });
-        html += `<div class="tv-row active-set"><span>SET ${matchState.currentSet}</span> <span>${state.scores.L} - ${state.scores.R}</span></div>`;
-        widget.innerHTML = html;
-    }
+        window.undo = function() {
+            if (historyStack.length > 0) { window.state = JSON.parse(historyStack.pop()); renderUI(); }
+        };
 
-    function renderUI() {
-        document.getElementById('score-L').innerText = state.scores.L;
-        document.getElementById('score-R').innerText = state.scores.R;
-        document.getElementById('shuttle-count').innerText = state.shuttlecocks;
+        function renderUI() {
+            document.getElementById('score-L').innerText = window.state.scores.L;
+            document.getElementById('score-R').innerText = window.state.scores.R;
+            document.querySelectorAll('.court-half').forEach(b => b.classList.remove('active-server'));
+            
+            if (!window.state.servingTeam && !window.state.gameFinished) {
+                document.getElementById('btn-serve-L').style.display = 'block'; document.getElementById('btn-serve-R').style.display = 'block';
+            } else {
+                document.getElementById('btn-serve-L').style.display = 'none'; document.getElementById('btn-serve-R').style.display = 'none';
+            }
 
-        document.getElementById('player-L-right').value = state.players.L.right;
-        document.getElementById('player-L-left').value = state.players.L.left;
-        document.getElementById('player-R-right').value = state.players.R.right;
-        document.getElementById('player-R-left').value = state.players.R.left;
-
-        document.querySelectorAll('.court-half').forEach(box => box.classList.remove('active-server'));
-        
-        if (!state.servingTeam && !state.gameFinished) {
-            document.getElementById('btn-serve-L').style.display = 'block';
-            document.getElementById('btn-serve-R').style.display = 'block';
-        } else {
-            document.getElementById('btn-serve-L').style.display = 'none';
-            document.getElementById('btn-serve-R').style.display = 'none';
+            if (window.state.servingTeam && !window.state.gameFinished) {
+                let currentScore = window.state.scores[window.state.servingTeam];
+                let activeSide = (currentScore % 2 === 0) ? 'right' : 'left';
+                document.getElementById(`box-${window.state.servingTeam}-${activeSide}`).classList.add('active-server');
+            }
+            checkStatus();
         }
 
-        if (state.servingTeam && !state.gameFinished) {
-            let currentScore = state.scores[state.servingTeam];
-            let activeSide = (currentScore % 2 === 0) ? 'right' : 'left';
-            document.getElementById(`box-${state.servingTeam}-${activeSide}`).classList.add('active-server');
-        }
-        renderTVWidget();
-        checkStatus();
-    }
+        function checkStatus() {
+            let status = document.getElementById('status-text');
+            if(!window.state.servingTeam && !window.state.gameFinished) { status.innerText = `Pilih Servis 0-0`; return; }
+            let diff = Math.abs(window.state.scores.L - window.state.scores.R);
+            window.state.gameFinished = false;
 
-    function checkStatus() {
-        let status = document.getElementById('status-text');
-        let btnNext = document.getElementById('btn-next-set');
-        
-        if(!state.servingTeam && !state.gameFinished) {
-            status.innerText = `SET ${matchState.currentSet}: Siapkan Posisi & Klik "Mulai Servis 0-0" di lapangan`;
-            status.style.color = "#fcd34d"; btnNext.style.display = 'none'; return;
+            if (window.state.scores.L >= WIN_SCORE - 1 && window.state.scores.R >= WIN_SCORE - 1 && diff === 0) {
+                status.innerText = "🔥 DEUCE (JUS) 🔥";
+            } else if ((window.state.scores.L >= WIN_SCORE || window.state.scores.R >= WIN_SCORE) && diff >= 2 || (window.state.scores.L === MAX_SCORE || window.state.scores.R === MAX_SCORE)) {
+                status.innerText = `🏆 SET SELESAI`; window.state.gameFinished = true;
+            } else { status.innerText = `Pertandingan Berjalan`; }
         }
 
-        let diff = Math.abs(state.scores.L - state.scores.R);
-        state.gameFinished = false;
+        window.swapCourtsUI = function() {
+            saveState();
+            let nameL = document.getElementById('name-L').value; let nameR = document.getElementById('name-R').value;
+            document.getElementById('name-L').value = nameR; document.getElementById('name-R').value = nameL;
+            let tempScore = window.state.scores.L; window.state.scores.L = window.state.scores.R; window.state.scores.R = tempScore;
+            if(window.state.servingTeam === 'L') window.state.servingTeam = 'R'; else if(window.state.servingTeam === 'R') window.state.servingTeam = 'L';
+            renderUI();
+        };
 
-        if (state.scores.L >= WIN_SCORE - 1 && state.scores.R >= WIN_SCORE - 1 && diff === 0) {
-            status.innerText = "🔥 DEUCE (JUS) 🔥"; status.style.color = "#ef4444"; btnNext.style.display = 'none';
-        }
-        else if ((state.scores.L >= WIN_SCORE || state.scores.R >= WIN_SCORE) && diff >= 2 || (state.scores.L === MAX_SCORE || state.scores.R === MAX_SCORE)) {
-            let winnerTeam = state.scores.L > state.scores.R ? 'L' : 'R';
-            let winnerName = winnerTeam === 'L' ? document.getElementById('name-L').value : document.getElementById('name-R').value;
-            status.innerText = `🏆 SET SELESAI: ${winnerName}`;
-            status.style.color = "#10b981"; state.gameFinished = true; btnNext.style.display = 'block';
-        } else {
-            status.innerText = `Pertandingan Set ${matchState.currentSet} Berjalan`;
-            status.style.color = "#fcd34d"; btnNext.style.display = 'none';
-        }
-    }
+        window.resetMatch = function() {
+            if(confirm("Reset ke awal?")) {
+                historyStack = [];
+                window.state = { scores: { L: 0, R: 0 }, servingTeam: null, players: { L: { right: "P1", left: "P2" }, R: { right: "P3", left: "P4" } }, gameFinished: false };
+                renderUI();
+            }
+        };
 
-    function startNextSet() {
-        saveStateToHistory();
-        matchState.setHistory.push({ set: matchState.currentSet, scoreL: state.scores.L, scoreR: state.scores.R });
-        let previousWinner = state.scores.L > state.scores.R ? 'L' : 'R';
-        matchState.currentSet++; state.scores = { L: 0, R: 0 }; state.gameFinished = false; state.servingTeam = previousWinner; 
-        renderUI();
-        syncScoreToDatabase();
-    }
-
-    function swapCourtsUI() {
-        saveStateToHistory();
-        let nameL = document.getElementById('name-L').value; let nameR = document.getElementById('name-R').value;
-        document.getElementById('name-L').value = nameR; document.getElementById('name-R').value = nameL;
-        
-        let tempScore = state.scores.L; state.scores.L = state.scores.R; state.scores.R = tempScore;
-        let tempPlayers = state.players.L; state.players.L = state.players.R; state.players.R = tempPlayers;
-        
-        if(state.servingTeam === 'L') state.servingTeam = 'R';
-        else if(state.servingTeam === 'R') state.servingTeam = 'L';
-        
-        matchState.setHistory.forEach(set => { let t = set.scoreL; set.scoreL = set.scoreR; set.scoreR = t; });
-        renderUI();
-        syncScoreToDatabase();
-    }
-
-    function resetMatch() {
-        if(confirm("Yakin ingin mereset laga ke Set 1?")) {
-            historyStack = []; matchState = { currentSet: 1, setHistory: [] };
-            state = {
-                scores: { L: 0, R: 0 }, servingTeam: null,
-                players: { L: { right: document.getElementById('player-L-right').value, left: document.getElementById('player-L-left').value },
-                           R: { right: document.getElementById('player-R-right').value, left: document.getElementById('player-R-left').value } },
-                shuttlecocks: 0, gameFinished: false
-            };
-            resetTimer(); renderUI(); syncScoreToDatabase();
-        }
-    }
-
-    function startTimer() {
-        if (!isTimerRunning) {
-            isTimerRunning = true;
-            timerInterval = setInterval(() => {
-                timeSeconds++;
-                let m = Math.floor(timeSeconds / 60).toString().padStart(2, '0'); let s = (timeSeconds % 60).toString().padStart(2, '0');
-                document.getElementById('timer-display').innerText = `${m}:${s}`;
-            }, 1000);
-        }
-    }
-    function pauseTimer() { isTimerRunning = false; clearInterval(timerInterval); }
-    function resetTimer() { pauseTimer(); timeSeconds = 0; document.getElementById('timer-display').innerText = "00:00"; }
-    function changeShuttle(val) { saveStateToHistory(); state.shuttlecocks += val; if(state.shuttlecocks < 0) state.shuttlecocks = 0; renderUI(); syncScoreToDatabase(); }
-
-    function downloadPDF() {
-        document.getElementById('pdf-officials').innerText = document.getElementById('officials').value || "-";
-        document.getElementById('pdf-duration').innerText = document.getElementById('timer-display').innerText;
-        document.getElementById('pdf-shuttle').innerText = state.shuttlecocks;
-        
-        document.getElementById('pdf-teamA').innerText = document.getElementById('name-L').value;
-        document.getElementById('pdf-playersA').innerText = `${document.getElementById('player-L-right').value} & ${document.getElementById('player-L-left').value}`;
-        document.getElementById('pdf-teamB').innerText = document.getElementById('name-R').value;
-        document.getElementById('pdf-playersB').innerText = `${document.getElementById('player-R-right').value} & ${document.getElementById('player-R-left').value}`;
-
-        let tbody = document.getElementById('pdf-score-table'); tbody.innerHTML = '';
-        let allSets = [...matchState.setHistory];
-        if(state.scores.L > 0 || state.scores.R > 0 || state.gameFinished) { allSets.push({ set: matchState.currentSet, scoreL: state.scores.L, scoreR: state.scores.R }); }
-
-        let winL = 0, winR = 0;
-        allSets.forEach(s => {
-            let row = `<tr><td style="border: 1px solid #000; padding: 10px;">Set ${s.set}</td><td style="border: 1px solid #000; padding: 10px;">${s.scoreL}</td><td style="border: 1px solid #000; padding: 10px;">${s.scoreR}</td></tr>`;
-            tbody.innerHTML += row;
-            if(s.scoreL > s.scoreR) winL++; else if(s.scoreR > s.scoreL) winR++;
-        });
-
-        let winnerText = "HASIL PERTANDINGAN";
-        if (winL > winR) winnerText = `PEMENANG: ${document.getElementById('name-L').value}`; else if (winR > winL) winnerText = `PEMENANG: ${document.getElementById('name-R').value}`;
-        document.getElementById('pdf-winner').innerText = winnerText;
-
-        const element = document.getElementById('pdf-recap'); element.style.display = 'block'; 
-        html2pdf().set({ margin: 1, filename: 'Rekapan_Badminton.pdf', image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 }, jsPDF: { unit: 'in', format: 'a4', orientation: 'landscape' }
-        }).from(element).save().then(() => { element.style.display = 'none'; });
-    }
-
-    updateRules(); renderTVWidget();
+        // Timer Logic
+        let timerInterval, timeSeconds = 0, isTimerRunning = false;
+        window.startTimer = function() { if (!isTimerRunning) { isTimerRunning = true; timerInterval = setInterval(() => { timeSeconds++; document.getElementById('timer-display').innerText = `${Math.floor(timeSeconds / 60).toString().padStart(2, '0')}:${(timeSeconds % 60).toString().padStart(2, '0')}`; }, 1000); } };
+        window.pauseTimer = function() { isTimerRunning = false; clearInterval(timerInterval); };
+        window.resetTimer = function() { window.pauseTimer(); timeSeconds = 0; document.getElementById('timer-display').innerText = "00:00"; };
+    });
 </script>
 </body>
 </html>
