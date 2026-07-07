@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lobby Wasit - Pilih Lapangan</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #111827; color: white; display: flex; flex-direction: column; align-items: center; padding: 50px 20px; }
+        h1 { color: #10b981; }
+        .court-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; width: 100%; max-width: 800px; margin-top: 30px; }
+        .court-card { background: #1f2937; padding: 20px; border-radius: 10px; text-align: center; border: 2px solid #374151; transition: 0.3s; }
+        .btn-enter { background: #3b82f6; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-size: 1.1rem; font-weight: bold; width: 100%; margin-top: 15px; }
+        .btn-enter:hover { background: #2563eb; }
+        .locked { border-color: #ef4444; opacity: 0.7; }
+        .btn-locked { background: #ef4444; cursor: not-allowed; }
+    </style>
+</head>
+<body>
+
+    <h1>🏸 Lobi Pemilihan Lapangan</h1>
+    <p>Silakan pilih lapangan yang tersedia untuk memulai penjurian.</p>
+
+    <div class="court-grid" id="court-container">
+        <p>Memuat data lapangan dari server...</p>
+    </div>
+
+<script>
+    // MASUKKAN URL DAN KEY SUPABASE ANDA DI SINI
+    const SUPABASE_URL = 'https://xyz.supabase.co'; 
+    const SUPABASE_KEY = 'eyJhbGci...'; 
+    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    async function loadCourts() {
+        const { data, error } = await supabase.from('courts').select('*').order('id', { ascending: true });
+        
+        if (error) {
+            console.error('Error fetching courts:', error);
+            return;
+        }
+
+        const container = document.getElementById('court-container');
+        container.innerHTML = '';
+
+        data.forEach(court => {
+            const isLocked = court.is_locked;
+            const card = document.createElement('div');
+            card.className = `court-card ${isLocked ? 'locked' : ''}`;
+            
+            card.innerHTML = `
+                <h2>${court.name}</h2>
+                <p style="color: ${isLocked ? '#ef4444' : '#10b981'}; font-weight: bold;">
+                    ${isLocked ? '🔴 SEDANG DIPAKAI' : '🟢 KOSONG'}
+                </p>
+                <button class="btn-enter ${isLocked ? 'btn-locked' : ''}" 
+                        onclick="enterCourt(${court.id}, ${isLocked})" 
+                        ${isLocked ? 'disabled' : ''}>
+                    ${isLocked ? 'Terkunci' : 'Masuk & Kunci Lapangan'}
+                </button>
+            `;
+            container.appendChild(card);
+        });
+    }
+
+    async function enterCourt(courtId, isLocked) {
+        if (isLocked) return;
+
+        // 1. Kunci Lapangan di Database
+        const { error } = await supabase
+            .from('courts')
+            .update({ is_locked: true })
+            .eq('id', courtId);
+
+        if (error) {
+            alert('Gagal mengunci lapangan. Silakan coba lagi.');
+            return;
+        }
+
+        // 2. Pindah ke Halaman Scoreboard membawa ID lapangan
+        window.location.href = `scoreboard.html?court_id=${courtId}`;
+    }
+
+    // Subscribe ke realtime updates (agar lobi update otomatis tanpa refresh)
+    supabase.channel('custom-all-channel')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'courts' }, payload => {
+          loadCourts();
+      })
+      .subscribe();
+
+    loadCourts();
+</script>
+</body>
+</html>
