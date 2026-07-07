@@ -26,17 +26,15 @@
     </div>
 
 <script>
-    // MASUKKAN URL DAN KEY SUPABASE ANDA DI SINI
-   // const SUPABASE_URL = 'https://vbpldrhwkuhstvtdoebm.supabase.co/rest/v1/'; 
-  //  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZicGxkcmh3a3Voc3R2dGRvZWJtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMzOTUwOTIsImV4cCI6MjA5ODk3MTA5Mn0.mxbHlUuJqJAbNB1KR2Zo3htIDHfiiGA2NS0lAG_krW8'; 
-   // GANTI DENGAN URL & KEY ANDA
+    // MASUKKAN URL DAN KEY SUPABASE ANDA DI BAWAH INI
     const SUPABASE_URL = 'https://vbpldrhwkuhstvtdoebm.supabase.co/rest/v1/'; 
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZicGxkcmh3a3Voc3R2dGRvZWJtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMzOTUwOTIsImV4cCI6MjA5ODk3MTA5Mn0.mxbHlUuJqJAbNB1KR2Zo3htIDHfiiGA2NS0lAG_krW8'; 
     
-    // Perbaikan: Ubah nama variabel menjadi "db"
+    // Perbaikan Error: Variabel sekarang bernama "db"
     const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     async function loadCourts() {
+        // Menggunakan "db"
         const { data, error } = await db.from('courts').select('*').order('id', { ascending: true });
         
         if (error) {
@@ -70,6 +68,7 @@
     async function enterCourt(courtId, isLocked) {
         if (isLocked) return;
 
+        // Menggunakan "db"
         const { error } = await db
             .from('courts')
             .update({ is_locked: true })
@@ -80,10 +79,12 @@
             return;
         }
 
+        // Pindah ke Halaman Scoreboard membawa ID lapangan
         window.location.href = `scoreboard.html?court_id=${courtId}`;
     }
 
-    // Subscribe ke realtime updates
+    // Subscribe ke realtime updates (agar lobi update otomatis tanpa refresh)
+    // Menggunakan "db"
     db.channel('custom-all-channel')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'courts' }, payload => {
           loadCourts();
