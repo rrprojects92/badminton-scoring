@@ -3,230 +3,578 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Scoreboard Badminton</title>
+    <title>Scoreboard Badminton Pro v7</title>
+    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
     <style>
         :root { --primary: #10b981; --dark: #111827; --panel: #1f2937; --court-bg: #059669; --court-line: #064e3b; }
-        html, body { margin: 0; padding: 0; width: 100vw; height: 100vh; background-color: var(--dark); color: white; font-family: sans-serif; overflow: hidden; box-sizing: border-box; }
+        
+        html, body {
+            margin: 0; padding: 0; width: 100vw; height: 100vh;
+            background-color: var(--dark); color: white;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden; box-sizing: border-box;
+        }
         * { box-sizing: border-box; }
-        #start-screen { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(17,24,39,0.95); z-index: 99999; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        .btn-start { background: var(--primary); color: white; border: none; padding: 20px 40px; font-size: 1.5rem; font-weight: bold; border-radius: 10px; cursor: pointer; }
-        #portrait-warning { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--dark); color: #fcd34d; z-index: 100000; align-items: center; justify-content: center; text-align: center; flex-direction: column; padding: 20px; font-size: 1.5rem; }
-        @media (orientation: portrait) { #portrait-warning { display: flex; } #start-screen, .container { display: none !important; } }
-        .container { display: flex; flex-direction: column; justify-content: space-between; width: 100%; height: 100%; max-width: 1400px; margin: 0 auto; padding: 8px; }
-        .top-bar { display: flex; justify-content: space-between; align-items: center; background-color: var(--panel); padding: 8px 15px; border-radius: 8px; gap: 10px; height: 12%; }
-        .settings-group { display: flex; flex-direction: column; gap: 2px; flex: 1; }
-        .settings-group label { font-size: 0.7rem; color: #9ca3af; }
-        .settings-group select, .settings-group input { padding: 4px; border-radius: 4px; border: 1px solid #4b5563; background: var(--dark); color: white; font-size: 0.8rem; width: 100%; }
-        .timer-container { flex: 1; text-align: center; background: #000; padding: 4px; border-radius: 6px; border: 1px solid #374151; display: flex; flex-direction: column; justify-content: center; }
-        .timer-display { font-size: 1.2rem; font-weight: bold; font-family: monospace; color: #10b981; margin-bottom: 2px;}
-        .timer-controls { display: flex; justify-content: center; gap: 5px; }
-        .timer-controls button { background: #374151; color: white; border: none; padding: 2px 8px; border-radius: 4px; cursor: pointer; }
-        .scoreboard { display: flex; justify-content: space-between; background-color: var(--court-bg); padding: 10px; border-radius: 10px; position: relative; height: 65%; margin: 8px 0; border: 4px solid white; }
-        .net-divider { width: 8px; background: repeating-linear-gradient(to bottom, #cbd5e1, #cbd5e1 4px, transparent 4px, transparent 8px); border-left: 2px solid white; border-right: 2px solid white; height: 100%; margin: 0 10px; }
-        .team { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: space-between; width: 48%; position: relative; }
-        .team-name-input { background: rgba(0,0,0,0.4); border: none; border-bottom: 2px solid #fcd34d; border-radius: 5px 5px 0 0; color: white; text-align: center; font-size: clamp(1rem, 4vh, 1.3rem); font-weight: bold; width: 100%; text-transform: uppercase; padding: 5px; margin-bottom: 5px; }
-        .real-court { display: flex; flex-direction: column; width: 100%; flex: 1; border: 2px solid white; background-color: var(--court-line); margin-bottom: 5px; }
-        .court-half { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; padding: 5px; transition: 0.3s; }
+
+        /* Start Screen */
+        #start-screen {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(17, 24, 39, 0.95); z-index: 99999;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+        .btn-start {
+            background: var(--primary); color: white; border: none; padding: 20px 40px;
+            font-size: 1.5rem; font-weight: bold; border-radius: 10px; cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3); transition: 0.2s;
+        }
+
+        #portrait-warning {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--dark); color: #fcd34d; z-index: 100000;
+            align-items: center; justify-content: center; text-align: center;
+            flex-direction: column; padding: 20px; font-size: 1.5rem; font-weight: bold;
+        }
+        @media (orientation: portrait) {
+            #portrait-warning { display: flex; }
+            #start-screen, .container { display: none !important; }
+        }
+
+        .container {
+            display: flex; flex-direction: column; justify-content: space-between;
+            width: 100%; height: 100%; max-width: 1450px; margin: 0 auto; padding: 6px;
+        }
+
+        /* Top Bar */
+        .top-bar {
+            display: flex; justify-content: space-between; align-items: center;
+            background-color: var(--panel); padding: 6px 12px; border-radius: 8px; gap: 8px;
+            height: 12%; min-height: 45px;
+        }
+        .settings-group { display: flex; flex-direction: column; gap: 1px; flex: 1; }
+        .settings-group label { font-size: 0.65rem; color: #9ca3af; }
+        .settings-group select, .settings-group input {
+            padding: 4px; border-radius: 4px; border: 1px solid #4b5563; background: var(--dark); color: white;
+            font-size: 0.75rem; width: 100%;
+        }
+        
+        .timer-container {
+            flex: 0.8; text-align: center; background: #000; padding: 2px 8px;
+            border-radius: 6px; border: 1px solid #374151; display: flex; flex-direction: column; justify-content: center;
+        }
+        .timer-display { font-size: 1.1rem; font-weight: bold; font-family: monospace; color: #10b981;}
+        .timer-controls button { background: #374151; color: white; border: none; padding: 1px 6px; border-radius: 3px; cursor: pointer; font-size: 0.65rem; }
+
+        /* Scoreboard (Lapangan Utama) */
+        .scoreboard {
+            display: flex; justify-content: space-between; background-color: var(--court-bg);
+            padding: 8px; border-radius: 10px; position: relative;
+            height: 60%; margin: 4px 0; border: 4px solid white;
+        }
+        
+        .net-divider {
+            width: 6px; background: repeating-linear-gradient(to bottom, #cbd5e1, #cbd5e1 4px, transparent 4px, transparent 8px);
+            border-left: 2px solid white; border-right: 2px solid white; height: 100%; opacity: 0.8; margin: 0 5px;
+        }
+
+        .tv-widget {
+            position: absolute; top: 5px; left: 10px; background: rgba(0,0,0,0.85);
+            padding: 4px 8px; border-radius: 4px; border-left: 3px solid #fcd34d;
+            font-family: monospace; font-size: 0.75rem; color: white; z-index: 10;
+        }
+        .tv-row { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 2px; }
+        .tv-row.active-set { color: #fcd34d; font-weight: bold; }
+
+        .team {
+            flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: space-between;
+            width: 48%; position: relative;
+        }
+        
+        .team-name-input {
+            background: rgba(0,0,0,0.4); border: none; border-bottom: 2px solid #fcd34d;
+            color: white; text-align: center; font-size: clamp(0.9rem, 3.5vh, 1.2rem); font-weight: bold; 
+            width: 100%; text-transform: uppercase; padding: 4px;
+        }
+
+        /* LAYOUT LAPANGAN */
+        .real-court {
+            display: flex; flex-direction: column; width: 100%; flex: 1;
+            border: 2px solid white; background-color: var(--court-line); margin: 4px 0;
+        }
+        .court-half {
+            flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+            position: relative; padding: 2px; transition: 0.3s;
+        }
         .court-half.border-middle { border-top: 2px dashed rgba(255,255,255,0.7); }
         .court-half.active-server { background: rgba(253, 224, 71, 0.25); box-shadow: inset 0 0 10px #fde047; }
-        .court-label { position: absolute; top: 3px; left: 5px; font-size: 0.55rem; color: rgba(255,255,255,0.6); font-weight: bold; }
-        .serve-badge { display: none; position: absolute; top: 3px; right: 5px; background: #fde047; color: black; font-size: 0.6rem; font-weight: bold; padding: 2px 6px; border-radius: 4px; }
+        
+        .court-label { position: absolute; top: 2px; left: 5px; font-size: 0.5rem; color: rgba(255,255,255,0.5); font-weight: bold; }
+        .serve-badge { display: none; position: absolute; top: 2px; right: 5px; background: #fde047; color: black; font-size: 0.55rem; font-weight: bold; padding: 1px 4px; border-radius: 3px; }
         .active-server .serve-badge { display: block; }
-        .player-input { background: transparent; border: none; border-bottom: 1px solid rgba(255,255,255,0.4); color: white; text-align: center; width: 80%; font-size: clamp(0.8rem, 2.5vh, 1rem); font-weight: bold; z-index: 2;}
-        .btn-first-serve { background: #f59e0b; color: white; border: none; padding: 4px 10px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; margin-top: 5px; cursor: pointer; z-index: 2; animation: pulse 1.5s infinite; }
-        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
-        .score-row { display: flex; align-items: center; justify-content: space-between; width: 100%; gap: 10px; }
-        .score { font-size: clamp(2.5rem, 18vh, 8rem); font-weight: bold; line-height: 0.8; width: 40%; text-align: center;}
-        .btn-point { background: #3b82f6; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: clamp(0.9rem, 3vh, 1.2rem); padding: 10px; flex: 1; height: 100%; }
-        .status-panel { text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 8%; min-height: 30px;}
-        #status-text { font-size: clamp(0.9rem, 3vh, 1.2rem); font-weight: bold; color: #fcd34d;}
-        #btn-next-set { display: none; background: #10b981; color: white; padding: 8px 15px; border: none; border-radius: 5px; font-weight: bold; cursor: pointer;}
-        .bottom-controls { display: flex; gap: 10px; justify-content: center; align-items: center; background: var(--panel); padding: 8px; border-radius: 8px; height: 10%; }
-        .btn-bottom { padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 0.8rem; }
+        
+        .player-input { background: transparent; border: none; border-bottom: 1px solid rgba(255,255,255,0.4); color: white; text-align: center; width: 85%; font-size: clamp(0.75rem, 2.3vh, 0.95rem); font-weight: bold; z-index: 2;}
+
+        .btn-first-serve {
+            background: #f59e0b; color: white; border: none; padding: 3px 8px; border-radius: 4px; 
+            font-size: 0.65rem; font-weight: bold; margin-top: 2px; cursor: pointer; z-index: 2;
+        }
+
+        .score-row { display: flex; align-items: center; justify-content: space-between; width: 100%; gap: 8px; }
+        .score { font-size: clamp(2rem, 16vh, 7rem); font-weight: bold; line-height: 0.8; width: 35%; text-align: center;}
+        .btn-point { background: #3b82f6; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: clamp(0.8rem, 2.5vh, 1.1rem); padding: 8px; flex: 1; height: 100%; box-shadow: 0 3px 0 #2563eb;}
+        .btn-point:active { transform: translateY(2px); box-shadow: none; }
+        
+        /* Session & Status Panel */
+        .status-panel { 
+            text-align: center; display: flex; justify-content: space-between; align-items: center; 
+            background: rgba(0,0,0,0.3); padding: 4px 15px; border-radius: 6px; height: 10%;
+        }
+        #status-text { font-size: clamp(0.8rem, 2.5vh, 1.1rem); font-weight: bold; color: #fcd34d; text-align: left; flex: 1;}
+        .partai-tracker { font-size: 0.75rem; color: #9ca3af; text-align: right; padding-right: 15px; font-family: monospace; }
+        #btn-next-partai { display: none; background: #10b981; color: white; padding: 6px 12px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 0.8rem;}
+
+        /* Bottom Controls */
+        .bottom-controls { display: flex; gap: 8px; justify-content: center; align-items: center; background: var(--panel); padding: 6px; border-radius: 8px; height: 10%; min-height: 40px;}
+        .btn-bottom { padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 0.75rem; white-space: nowrap; }
+        .shuttle-box { display: flex; align-items: center; gap: 4px; background: #374151; padding: 4px 8px; border-radius: 4px; color: #9ca3af; font-size: 0.75rem;}
+        .shuttle-box button { background: #4b5563; color: white; border: none; border-radius: 50%; width: 22px; height: 22px; cursor: pointer; }
+        #shuttle-count { font-weight: bold; color: white; width: 15px; text-align: center; }
+
+        #pdf-recap { display: none; background: white; color: black; padding: 30px; width: 100%; }
+        .pdf-table { width: 100%; border-collapse: collapse; margin-top: 15px; text-align: center; }
+        .pdf-table th, .pdf-table td { border: 1px solid black; padding: 8px; }
     </style>
 </head>
 <body>
 
-<div id="portrait-warning">🔄<br>Putar layar ke Landscape.</div>
+<div id="portrait-warning">🔄<br>Putar layar ke posisi Landscape (Mendatar).</div>
 <div id="start-screen"><button class="btn-start" onclick="startApp()">Mulai Pertandingan</button></div>
 
 <div class="container" id="main-app">
     <div class="top-bar">
-        <div class="settings-group" style="flex: 0.8;"><label>Mode Poin</label><select id="game-mode" onchange="updateRules()"><option value="21">Standar (21)</option><option value="42">Custom (42)</option></select></div>
-        <div class="settings-group"><label>Wasit</label><input type="text" id="officials" placeholder="Nama Wasit"></div>
-        <div class="timer-container"><div class="timer-display" id="timer-display">00:00</div><div class="timer-controls"><button onclick="startTimer()">▶</button><button onclick="pauseTimer()">⏸</button><button onclick="resetTimer()">⏹</button></div></div>
+        <div class="settings-group" style="flex: 0.6;">
+            <label>Mode Poin</label>
+            <select id="game-mode" onchange="updateRules()">
+                <option value="21">Standar BWF (21)</option>
+                <option value="42">Custom (42)</option>
+            </select>
+        </div>
+        <div class="settings-group" style="flex: 0.6;">
+            <label>Tipe Partai</label>
+            <select id="match-type" onchange="updateMatchType()">
+                <option value="ganda">Ganda (Doubles)</option>
+                <option value="tunggal">Tunggal (Singles)</option>
+            </select>
+        </div>
+        <div class="settings-group">
+            <label>Nama Wasit / Referee</label>
+            <input type="text" id="officials" placeholder="Nama Wasit Utama">
+        </div>
+
+        <div class="timer-container">
+            <div class="timer-display" id="timer-display">00:00</div>
+            <div class="timer-controls">
+                <button onclick="startTimer()">▶</button>
+                <button onclick="pauseTimer()">⏸</button>
+                <button onclick="resetTimer()">⏹</button>
+            </div>
+        </div>
+
         <button class="btn-bottom" style="background:#f59e0b; color:white; height: 100%;" onclick="undo()">↩️ Undo</button>
-        <button class="btn-bottom" style="background:#ef4444; color:white; height: 100%; font-size: 1rem;" onclick="exitAndUnlock()">🚪 Keluar</button>
+        <button class="btn-bottom" style="background:#ef4444; color:white; height: 100%; font-size: 0.9rem;" onclick="exitAndUnlock()">🚪 Keluar</button>
     </div>
 
     <div class="scoreboard" id="scoreboard">
+        <div class="tv-widget" id="tv-widget"></div>
+
         <div class="team" id="team-L">
-            <input type="text" class="team-name-input" id="name-L" value="TIM A">
+            <input type="text" class="team-name-input" id="name-L" value="TIM KIRI">
             <div class="real-court">
-                <div class="court-half" id="box-L-left"><span class="court-label">KIRI (GANJIL)</span><span class="serve-badge">🏸 Servis</span><input type="text" class="player-input" id="player-L-left" placeholder="Pemain 2"></div>
-                <div class="court-half border-middle" id="box-L-right"><span class="court-label">KANAN (GENAP)</span><span class="serve-badge">🏸 Servis</span><input type="text" class="player-input" id="player-L-right" placeholder="Pemain 1"><button class="btn-first-serve" id="btn-serve-L" onclick="setFirstServe('L')">Mulai Servis 0-0</button></div>
+                <div class="court-half" id="box-L-left">
+                    <span class="court-label" id="label-L-left">KIRI (GANJIL)</span>
+                    <span class="serve-badge">🏸 Servis</span>
+                    <input type="text" class="player-input" id="player-L-left" value="Pemain 2">
+                </div>
+                <div class="court-half border-middle" id="box-L-right">
+                    <span class="court-label" id="label-L-right">KANAN (GENAP)</span>
+                    <span class="serve-badge">🏸 Servis</span>
+                    <input type="text" class="player-input" id="player-L-right" value="Pemain 1">
+                    <button class="btn-first-serve" id="btn-serve-L" onclick="setFirstServe('L')">Mulai Servis</button>
+                </div>
             </div>
-            <div class="score-row"><div class="score" id="score-L">0</div><button class="btn-point" onclick="addPoint('L')">+1 POIN KIRI</button></div>
+            <div class="score-row">
+                <div class="score" id="score-L">0</div>
+                <button class="btn-point" onclick="addPoint('L')">+1 KIRI</button>
+            </div>
         </div>
+
         <div class="net-divider"></div>
+
         <div class="team" id="team-R">
-            <input type="text" class="team-name-input" id="name-R" value="TIM B">
+            <input type="text" class="team-name-input" id="name-R" value="TIM KANAN">
             <div class="real-court">
-                <div class="court-half" id="box-R-right"><span class="court-label">KANAN (GENAP)</span><span class="serve-badge">🏸 Servis</span><input type="text" class="player-input" id="player-R-right" placeholder="Pemain 3"><button class="btn-first-serve" id="btn-serve-R" onclick="setFirstServe('R')">Mulai Servis 0-0</button></div>
-                <div class="court-half border-middle" id="box-R-left"><span class="court-label">KIRI (GANJIL)</span><span class="serve-badge">🏸 Servis</span><input type="text" class="player-input" id="player-R-left" placeholder="Pemain 4"></div>
+                <div class="court-half" id="box-R-right">
+                    <span class="court-label" id="label-R-right">KANAN (GENAP)</span>
+                    <span class="serve-badge">🏸 Servis</span>
+                    <input type="text" class="player-input" id="player-R-right" value="Pemain 3">
+                    <button class="btn-first-serve" id="btn-serve-R" onclick="setFirstServe('R')">Mulai Servis</button>
+                </div>
+                <div class="court-half border-middle" id="box-R-left">
+                    <span class="court-label" id="label-R-left">KIRI (GANJIL)</span>
+                    <span class="serve-badge">🏸 Servis</span>
+                    <input type="text" class="player-input" id="player-R-left" value="Pemain 4">
+                </div>
             </div>
-            <div class="score-row"><button class="btn-point" onclick="addPoint('R')">+1 POIN KANAN</button><div class="score" id="score-R">0</div></div>
+            <div class="score-row">
+                <button class="btn-point" onclick="addPoint('R')">+1 KANAN</button>
+                <div class="score" id="score-R">0</div>
+            </div>
         </div>
     </div>
 
     <div class="status-panel">
-        <span id="status-text">Siapkan Posisi & Klik "Mulai Servis 0-0" di lapangan</span>
-        <button id="btn-next-set" onclick="startNextSet()">Lanjut Set ➡️</button>
+        <span id="status-text">Pilih Servis Mulai 0-0</span>
+        <div class="partai-tracker" id="partai-tracker">Sesi: Partai 1/3</div>
+        <button id="btn-next-partai" onclick="saveAndNextPartai()">📦 Simpan & Lanjut Partai Berikutnya</button>
     </div>
 
     <div class="bottom-controls">
-        <button class="btn-bottom" style="background:#3b82f6; color:white;" onclick="swapCourtsUI()">🔄 Tukar Lapangan</button>
-        <button class="btn-bottom" style="background:#374151; color:white;" onclick="resetMatch()">🗑️ Reset Laga</button>
+        <div class="shuttle-box">
+            <span>Kok:</span>
+            <button onclick="changeShuttle(-1)">-</button>
+            <span id="shuttle-count">0</span>
+            <button onclick="changeShuttle(1)">+</button>
+        </div>
+        <button class="btn-bottom" style="background:#f59e0b; color:white;" onclick="swapCourtsUI()">🔄 Tukar Tempat</button>
+        <button class="btn-bottom" style="background:#374151; color:white;" onclick="resetMatch()">🗑️ Reset Partai Ini</button>
+        <button class="btn-bottom" style="background:#10b981; color:white;" onclick="downloadPDF()">📄 Download Rekapan PDF (3 Partai)</button>
     </div>
 </div>
 
+<div id="pdf-recap">
+    <h1 style="text-align: center; border-bottom: 3px double black; padding-bottom: 10px; margin-bottom: 5px;">REKAPAN TOTAL SESI MATCH BADMINTON</h1>
+    <h3 style="text-align: center; margin: 0 0 20px 0; color: #555;">LAPORAN PERTANDINGAN MULTI-PARTAI</h3>
+    <div style="font-size: 1.1em; margin-bottom: 15px;">
+        <p><strong>Wasit Utama / Referee:</strong> <span id="pdf-officials"></span></p>
+        <p><strong>Total Durasi Sesi:</strong> <span id="pdf-duration"></span></p>
+        <p><strong>Total Kok Terpakai:</strong> <span id="pdf-shuttle"></span> buah</p>
+    </div>
+    <div id="pdf-partai-content"></div>
+</div>
+
 <script>
-    document.addEventListener("DOMContentLoaded", () => {
-    
-    // --- 1. UBAH DUA BARIS INI DENGAN DATA SUPABASE ANDA ---
+document.addEventListener("DOMContentLoaded", () => {
+    // --- 1. KONEKSI CLOUD SUPABASE ---
     const SUPABASE_URL = 'https://vbpldrhwkuhstvtdoebm.supabase.co'; 
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZicGxkcmh3a3Voc3R2dGRvZWJtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMzOTUwOTIsImV4cCI6MjA5ODk3MTA5Mn0.mxbHlUuJqJAbNB1KR2Zo3htIDHfiiGA2NS0lAG_krW8'; 
-    
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZicGxkcmh3a3Voc3R2dGRvZWJtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMzOTUwOTIsImV4cCI6MjA5ODk3MTA5Mn0.mxbHlUuJqJAbNB1KR2Zo3htIDHfiiGA2NS0lAG_krW8'; // Silakan isi dengan Anon Key Supabase Anda
     const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     const courtId = new URLSearchParams(window.location.search).get('court_id');
 
-    if (!courtId) { alert("Akses ilegal! Pilih lapangan dari lobi."); window.location.href = 'index.html'; }
+    if (!courtId) { alert("Akses ditolak! Silakan masuk melalui halaman Lobi."); window.location.href = 'index.html'; }
 
-    // Fitur Supabase
+    // --- 2. STATE UTAMA (Mendukung Multi-Partai & Tunggal/Ganda) ---
+    let WIN_SCORE = 21, MAX_SCORE = 30;
+    
+    // State Sesi Global (Menyimpan riwayat 3 partai)
+    window.sessionState = {
+        currentPartai: 1,
+        partaiHistory: [], // Menyimpan rekapan data partai 1, 2, 3
+        totalShuttlecocks: 0,
+        totalTimeSeconds: 0
+    };
+
+    // State Pertandingan yang sedang aktif saat ini
+    window.state = {
+        scores: { L: 0, R: 0 },
+        servingTeam: null,
+        matchType: "ganda",
+        players: {
+            L: { right: "Pemain 1", left: "Pemain 2" },
+            R: { right: "Pemain 3", left: "Pemain 4" }
+        },
+        currentSet: 1,
+        setHistory: [], // Histori set pada partai aktif saat ini
+        gameFinished: false
+    };
+
+    let historyStack = [];
+
+    // --- 3. INTERAKSI CLOUD & SISTEM ---
     window.exitAndUnlock = async function() {
-        if(confirm("Yakin ingin keluar? Lapangan akan dikosongkan.")) {
+        if(confirm("Keluar dari papan skor? Lapangan akan dikosongkan.")) {
             await db.from('courts').update({ is_locked: false, match_state: null }).eq('id', courtId);
             window.location.href = 'index.html';
         }
     };
     
-    async function syncScoreToDatabase() {
+    async function syncToCloud() {
         if (!courtId) return;
-        await db.from('courts').update({ match_state: JSON.stringify(window.state) }).eq('id', courtId);
+        const payload = { s: window.state, ss: window.sessionState };
+        await db.from('courts').update({ match_state: JSON.stringify(payload) }).eq('id', courtId);
     }
 
     window.startApp = function() {
         let elem = document.documentElement;
         if (elem.requestFullscreen) { elem.requestFullscreen(); } 
         document.getElementById('start-screen').style.display = 'none';
+        startTimer();
+        renderUI();
     };
-
-    // --- 2. LOGIKA PERTANDINGAN & POSISI ---
-    let WIN_SCORE = 21, MAX_SCORE = 30;
-    window.state = { scores: { L: 0, R: 0 }, servingTeam: null, players: { L: { right: "Pemain 1", left: "Pemain 2" }, R: { right: "Pemain 3", left: "Pemain 4" } }, gameFinished: false };
-    let historyStack = [];
 
     window.updateRules = function() {
         let mode = document.getElementById('game-mode').value;
         WIN_SCORE = mode === "21" ? 21 : 42; MAX_SCORE = mode === "21" ? 30 : 50;
-        checkStatus();
+        renderUI();
     };
 
-    // FUNGSI BARU: Membaca nama yang diketik wasit sebelum poin ditambah
-    function readPlayersFromUI() {
-        window.state.players.L.right = document.getElementById('player-L-right').value;
-        window.state.players.L.left = document.getElementById('player-L-left').value;
-        window.state.players.R.right = document.getElementById('player-R-right').value;
-        window.state.players.R.left = document.getElementById('player-R-left').value;
-    }
-
-    function saveState() { historyStack.push(JSON.stringify(window.state)); }
-
-    window.setFirstServe = function(team) { 
-        readPlayersFromUI(); // Baca dulu
-        saveState(); 
-        window.state.servingTeam = team; 
-        renderUI(); 
-        syncScoreToDatabase();
-    };
-
-    window.addPoint = function(teamWon) {
-        if (!window.state.servingTeam) { alert("Pilih servis pertama!"); return; }
-        if (window.state.gameFinished) return;
+    window.updateMatchType = function() {
+        let type = document.getElementById('match-type').value;
+        window.state.matchType = type;
         
-        readPlayersFromUI(); // Kunci penting agar nama tidak hilang/reset
-        saveState();
-        
-        if (window.state.servingTeam === teamWon) {
-            // ATURAN 1: Tim Servis Menang = Poin Nambah + Tukar Tempat (Kiri & Kanan)
-            window.state.scores[teamWon]++;
-            let temp = window.state.players[teamWon].right;
-            window.state.players[teamWon].right = window.state.players[teamWon].left;
-            window.state.players[teamWon].left = temp;
+        // Sesuaikan form input nama pemain secara visual
+        if(type === "tunggal") {
+            document.getElementById('player-L-left').style.visibility = 'hidden';
+            document.getElementById('player-R-left').style.visibility = 'hidden';
+            document.getElementById('label-L-left').innerText = "KOSONG";
+            document.getElementById('label-R-left').innerText = "KOSONG";
         } else {
-            // ATURAN 2: Pindah Bola (Service Over) = Poin Nambah, Posisi TETAP
-            window.state.scores[teamWon]++; 
-            window.state.servingTeam = teamWon;
+            document.getElementById('player-L-left').style.visibility = 'visible';
+            document.getElementById('player-R-left').style.visibility = 'visible';
+            document.getElementById('label-L-left').innerText = "KIRI (GANJIL)";
+            document.getElementById('label-R-left').innerText = "KIRI (GANJIL)";
         }
         renderUI();
-        syncScoreToDatabase();
     };
+
+    function readPlayersFromUI() {
+        window.state.players.L.right = document.getElementById('player-L-right').value;
+        window.state.players.R.right = document.getElementById('player-R-right').value;
+        if(window.state.matchType === "ganda") {
+            window.state.players.L.left = document.getElementById('player-L-left').value;
+            window.state.players.R.left = document.getElementById('player-R-left').value;
+        }
+    }
+
+    function saveState() {
+        historyStack.push(JSON.stringify({ s: window.state, ss: window.sessionState }));
+    }
 
     window.undo = function() {
         if (historyStack.length > 0) { 
-            window.state = JSON.parse(historyStack.pop()); 
+            let previous = JSON.parse(historyStack.pop());
+            window.state = previous.s;
+            window.sessionState = previous.ss;
             renderUI(); 
-            syncScoreToDatabase();
+            syncToCloud();
         }
     };
 
+    // --- 4. LOGIKA PERHITUNGAN SKOR & PERPINDAHAN PEMEBAIN ---
+    window.setFirstServe = function(team) { 
+        readPlayersFromUI();
+        saveState(); 
+        window.state.servingTeam = team; 
+        renderUI(); 
+        syncToCloud();
+    };
+
+    window.addPoint = function(teamWon) {
+        if (!window.state.servingTeam) { alert("Tentukan siapa yang melakukan servis awal terlebih dahulu!"); return; }
+        if (window.state.gameFinished) return;
+        
+        readPlayersFromUI();
+        saveState();
+        
+        if (window.state.matchType === "ganda") {
+            // ATURAN GANDA BWF
+            if (window.state.servingTeam === teamWon) {
+                window.state.scores[teamWon]++;
+                let temp = window.state.players[teamWon].right;
+                window.state.players[teamWon].right = window.state.players[teamWon].left;
+                window.state.players[teamWon].left = temp;
+            } else {
+                window.state.scores[teamWon]++; 
+                window.state.servingTeam = teamWon;
+            }
+        } else {
+            // ATURAN TUNGGAL BWF (Pemain Otomatis Bergeser Sesuai Poin Genap/Ganjil)
+            window.state.scores[teamWon]++;
+            window.state.servingTeam = teamWon;
+        }
+        
+        renderUI();
+        syncToCloud();
+    };
+
+    // --- 5. RENDER UI & WIDGET TV ---
+    function renderTVWidget() {
+        let widget = document.getElementById('tv-widget');
+        let html = '';
+        
+        window.state.setHistory.forEach(set => { 
+            html += `<div class="tv-row"><span>SET ${set.set}</span> <span>${set.scoreL} - ${set.scoreR}</span></div>`; 
+        });
+        
+        html += `<div class="tv-row active-set"><span>SET ${window.state.currentSet}</span> <span>${window.state.scores.L} - ${window.state.scores.R}</span></div>`;
+        widget.innerHTML = html;
+    }
+
     function renderUI() {
+        // Tampilkan Skor Utama
         document.getElementById('score-L').innerText = window.state.scores.L;
         document.getElementById('score-R').innerText = window.state.scores.R;
-        
-        // Tulis ulang nama pemain ke layar
-        document.getElementById('player-L-right').value = window.state.players.L.right;
-        document.getElementById('player-L-left').value = window.state.players.L.left;
-        document.getElementById('player-R-right').value = window.state.players.R.right;
-        document.getElementById('player-R-left').value = window.state.players.R.left;
+        document.getElementById('shuttle-count').innerText = window.sessionState.totalShuttlecocks;
+        document.getElementById('partai-tracker').innerText = `Sesi: Partai ${window.sessionState.currentPartai} / 3 (${window.state.matchType.toUpperCase()})`;
 
-        document.querySelectorAll('.court-half').forEach(b => b.classList.remove('active-server'));
-        
-        if (!window.state.servingTeam && !window.state.gameFinished) {
-            document.getElementById('btn-serve-L').style.display = 'block'; document.getElementById('btn-serve-R').style.display = 'block';
+        // Atur posisi penulisan nama pemain pada Tunggal vs Ganda
+        if(window.state.matchType === "tunggal") {
+            // Sisi Tunggal Kiri
+            if(window.state.scores.L % 2 === 0) {
+                document.getElementById('player-L-right').value = window.state.players.L.right;
+                document.getElementById('player-L-left').value = "";
+            } else {
+                document.getElementById('player-L-left').value = window.state.players.L.right;
+                document.getElementById('player-L-right').value = "";
+            }
+            // Sisi Tunggal Kanan
+            if(window.state.scores.R % 2 === 0) {
+                document.getElementById('player-R-right').value = window.state.players.R.right;
+                document.getElementById('player-R-left').value = "";
+            } else {
+                document.getElementById('player-R-left').value = window.state.players.R.right;
+                document.getElementById('player-R-right').value = "";
+            }
         } else {
-            document.getElementById('btn-serve-L').style.display = 'none'; document.getElementById('btn-serve-R').style.display = 'none';
+            document.getElementById('player-L-right').value = window.state.players.L.right;
+            document.getElementById('player-L-left').value = window.state.players.L.left;
+            document.getElementById('player-R-right').value = window.state.players.R.right;
+            document.getElementById('player-R-left').value = window.state.players.R.left;
         }
 
-        // Tentukan kotak mana yang nyala (Ganjil/Genap)
+        // Tampilkan/Sembunyikan tombol servis awal
+        if (!window.state.servingTeam && !window.state.gameFinished) {
+            document.getElementById('btn-serve-L').style.display = 'block';
+            document.getElementById('btn-serve-R').style.display = 'block';
+        } else {
+            document.getElementById('btn-serve-L').style.display = 'none';
+            document.getElementById('btn-serve-R').style.display = 'none';
+        }
+
+        // Beri Blok Kuning (Highlight) pada Pemain yang Servis
+        document.querySelectorAll('.court-half').forEach(b => b.classList.remove('active-server'));
         if (window.state.servingTeam && !window.state.gameFinished) {
             let currentScore = window.state.scores[window.state.servingTeam];
             let activeSide = (currentScore % 2 === 0) ? 'right' : 'left';
             document.getElementById(`box-${window.state.servingTeam}-${activeSide}`).classList.add('active-server');
         }
+
+        renderTVWidget();
         checkStatus();
     }
 
     function checkStatus() {
         let status = document.getElementById('status-text');
-        if(!window.state.servingTeam && !window.state.gameFinished) { status.innerText = `Pilih Servis 0-0 di Lapangan`; return; }
+        let btnNextPartai = document.getElementById('btn-next-partai');
+        
+        if(!window.state.servingTeam && !window.state.gameFinished) { 
+            status.innerText = `Partai ${window.sessionState.currentPartai} - Set ${window.state.currentSet}: Tentukan Servis Awal`; 
+            btnNextPartai.style.display = 'none';
+            return; 
+        }
         
         let diff = Math.abs(window.state.scores.L - window.state.scores.R);
         window.state.gameFinished = false;
 
+        // Kondisi Deuce (Jus)
         if (window.state.scores.L >= WIN_SCORE - 1 && window.state.scores.R >= WIN_SCORE - 1 && diff === 0) {
             status.innerText = "🔥 DEUCE (JUS) 🔥";
-        } else if ((window.state.scores.L >= WIN_SCORE || window.state.scores.R >= WIN_SCORE) && diff >= 2 || (window.state.scores.L === MAX_SCORE || window.state.scores.R === MAX_SCORE)) {
-            let winnerTeam = window.state.scores.L > window.state.scores.R ? 'L' : 'R';
-            let winnerName = winnerTeam === 'L' ? document.getElementById('name-L').value : document.getElementById('name-R').value;
-            status.innerText = `🏆 SET SELESAI. PEMENANG: ${winnerName}`; 
+            btnNextPartai.style.display = 'none';
+        } 
+        // Kondisi Set Selesai (Mencapai skor kemenangan)
+        else if (((window.state.scores.L >= WIN_SCORE || window.state.scores.R >= WIN_SCORE) && diff >= 2) || (window.state.scores.L === MAX_SCORE || window.state.scores.R === MAX_SCORE)) {
+            
             window.state.gameFinished = true;
+            let setWinner = window.state.scores.L > window.state.scores.R ? 'L' : 'R';
+            
+            // Simpan riwayat set yang baru selesai
+            window.state.setHistory.push({
+                set: window.state.currentSet,
+                scoreL: window.state.scores.L,
+                scoreR: window.state.scores.R,
+                winner: setWinner
+            });
+
+            // Hitung total kemenangan set untuk partai ini (Best of 3)
+            let winL = window.state.setHistory.filter(x => x.winner === 'L').length;
+            let winR = window.state.setHistory.filter(x => x.winner === 'R').length;
+
+            if (winL === 2 || winR === 2) {
+                let namaPemenang = winL === 2 ? document.getElementById('name-L').value : document.getElementById('name-R').value;
+                status.innerText = `🏆 MATCH GAME OVER! Dimenangkan oleh ${namaPemenang}`;
+                btnNextPartai.style.display = 'block'; // Tampilkan tombol simpan partai ke database
+            } else {
+                // Jika masih 1-1, lanjut ke set berikutnya otomatis
+                window.state.currentSet++;
+                window.state.scores = { L: 0, R: 0 };
+                window.state.servingTeam = setWinner; // Pemenang set sebelumnya berhak servis
+                window.state.gameFinished = false;
+                alert(`Set ${window.state.currentSet - 1} Selesai. Bersiap masuk ke Set ${window.state.currentSet}!`);
+                renderUI();
+            }
         } else { 
-            status.innerText = `Pertandingan Berjalan`; 
+            status.innerText = `Partai ${window.sessionState.currentPartai} - Set ${window.state.currentSet} Sedang Berjalan`; 
+            btnNextPartai.style.display = 'none';
         }
     }
+
+    // --- 6. MANAJEMEN MULTI-PARTAI (Sesi 1, 2, 3) ---
+    window.saveAndNextPartai = function() {
+        saveState();
+        readPlayersFromUI();
+
+        // Ambil pemenang final partai ini
+        let winL = window.state.setHistory.filter(x => x.winner === 'L').length;
+        let finalWinner = winL === 2 ? document.getElementById('name-L').value : document.getElementById('name-R').value;
+
+        // Ambil detail nama pemain untuk rekapan laporan
+        let pL = window.state.matchType === 'ganda' ? `${window.state.players.L.right} & ${window.state.players.L.left}` : window.state.players.L.right;
+        let pR = window.state.matchType === 'ganda' ? `${window.state.players.R.right} & ${window.state.players.R.left}` : window.state.players.R.right;
+
+        // Masukkan data partai aktif ke dalam database history sesi
+        window.sessionState.partaiHistory.push({
+            partaiNum: window.sessionState.currentPartai,
+            type: window.state.matchType.toUpperCase(),
+            teamL: document.getElementById('name-L').value,
+            teamR: document.getElementById('name-R').value,
+            playersL: pL,
+            playersR: pR,
+            sets: [...window.state.setHistory],
+            winner: finalWinner
+        });
+
+        if (window.sessionState.currentPartai < 3) {
+            // Lanjut ke nomor partai berikutnya, bersihkan papan skor
+            window.sessionState.currentPartai++;
+            window.state = {
+                scores: { L: 0, R: 0 },
+                servingTeam: null,
+                matchType: document.getElementById('match-type').value,
+                players: { L: { right: "Pemain 1", left: "Pemain 2" }, R: { right: "Pemain 3", left: "Pemain 4" } },
+                currentSet: 1,
+                setHistory: [],
+                gameFinished: false
+            };
+            alert(`Data Partai Berhasil Disimpan! Silakan input nama pemain untuk Partai Ke-${window.sessionState.currentPartai}.`);
+            renderUI();
+            syncToCloud();
+        } else {
+            alert("Seluruh sesi (3 Partai) telah selesai dimainkan! Silakan unduh rekapan PDF total.");
+            renderUI();
+            syncToCloud();
+        }
+    };
 
     window.swapCourtsUI = function() {
         readPlayersFromUI();
@@ -241,23 +589,106 @@
         else if(window.state.servingTeam === 'R') window.state.servingTeam = 'L';
         
         renderUI();
-        syncScoreToDatabase();
+        syncToCloud();
     };
 
     window.resetMatch = function() {
-        if(confirm("Reset pertandingan ke 0-0?")) {
-            historyStack = [];
-            window.state = { scores: { L: 0, R: 0 }, servingTeam: null, players: { L: { right: "Pemain 1", left: "Pemain 2" }, R: { right: "Pemain 3", left: "Pemain 4" } }, gameFinished: false };
+        if(confirm("Yakin ingin mengulang skor Partai ini dari awal (0-0)?")) {
+            window.state.scores = { L: 0, R: 0 };
+            window.state.servingTeam = null;
+            window.state.currentSet = 1;
+            window.state.setHistory = [];
+            window.state.gameFinished = false;
             renderUI();
-            syncScoreToDatabase();
+            syncToCloud();
         }
     };
 
-    // --- 3. TIMER LOGIC ---
-    let timerInterval, timeSeconds = 0, isTimerRunning = false;
-    window.startTimer = function() { if (!isTimerRunning) { isTimerRunning = true; timerInterval = setInterval(() => { timeSeconds++; document.getElementById('timer-display').innerText = `${Math.floor(timeSeconds / 60).toString().padStart(2, '0')}:${(timeSeconds % 60).toString().padStart(2, '0')}`; }, 1000); } };
+    // --- 7. TIMING & SHUTTLECOCK CONTROLS ---
+    let timerInterval, isTimerRunning = false;
+    function startTimer() { 
+        if (!isTimerRunning) { 
+            isTimerRunning = true; 
+            timerInterval = setInterval(() => { 
+                window.sessionState.totalTimeSeconds++; 
+                let m = Math.floor(window.sessionState.totalTimeSeconds / 60).toString().padStart(2, '0');
+                let s = (window.sessionState.totalTimeSeconds % 60).toString().padStart(2, '0');
+                document.getElementById('timer-display').innerText = `${m}:${s}`; 
+            }, 1000); 
+        } 
+    }
     window.pauseTimer = function() { isTimerRunning = false; clearInterval(timerInterval); };
-    window.resetTimer = function() { window.pauseTimer(); timeSeconds = 0; document.getElementById('timer-display').innerText = "00:00"; };
+    window.resetTimer = function() { window.pauseTimer(); window.sessionState.totalTimeSeconds = 0; document.getElementById('timer-display').innerText = "00:00"; };
+    window.changeShuttle = function(val) { saveState(); window.sessionState.totalShuttlecocks += val; if(window.sessionState.totalShuttlecocks < 0) window.sessionState.totalShuttlecocks = 0; renderUI(); syncToCloud(); };
+
+    // --- 8. GENERATE UNDUHAN REKAP PDF (3 PARTAI) ---
+    window.downloadPDF = function() {
+        document.getElementById('pdf-officials').innerText = document.getElementById('officials').value || "-";
+        document.getElementById('pdf-duration').innerText = document.getElementById('timer-display').innerText;
+        document.getElementById('pdf-shuttle').innerText = window.sessionState.totalShuttlecocks;
+        
+        let container = document.getElementById('pdf-partai-content');
+        container.innerHTML = '';
+
+        // Gabungkan riwayat partai lama dengan partai yang sedang aktif (jika ada poin)
+        let totalPartaiList = [...window.sessionState.partaiHistory];
+        if (window.state.scores.L > 0 || window.state.scores.R > 0 || window.state.setHistory.length > 0) {
+            let pL = window.state.matchType === 'ganda' ? `${window.state.players.L.right} & ${window.state.players.L.left}` : window.state.players.L.right;
+            let pR = window.state.matchType === 'ganda' ? `${window.state.players.R.right} & ${window.state.players.R.left}` : window.state.players.R.right;
+            totalPartaiList.push({
+                partaiNum: window.sessionState.currentPartai,
+                type: window.state.matchType.toUpperCase(),
+                teamL: document.getElementById('name-L').value,
+                teamR: document.getElementById('name-R').value,
+                playersL: pL,
+                playersR: pR,
+                sets: [...window.state.setHistory],
+                winner: "BELUM SELESAI"
+            });
+        }
+
+        if(totalPartaiList.length === 0) { alert("Belum ada data skor yang bisa dicetak!"); return; }
+
+        totalPartaiList.forEach(p => {
+            let tableRows = '';
+            p.sets.forEach(s => {
+                tableRows += `<tr><td>Set ${s.set}</td><td>${s.scoreL}</td><td>${s.scoreR}</td></tr>`;
+            });
+            // Jika set terakhir sedang running dan belum masuk setHistory
+            if(p.winner === "BELUM SELESAI" && (window.state.scores.L > 0 || window.state.scores.R > 0)) {
+                tableRows += `<tr><td>Set ${window.state.currentSet} (Running)</td><td>${window.state.scores.L}</td><td>${window.state.scores.R}</td></tr>`;
+            }
+
+            let partaiBlock = `
+                <div style="margin-top: 25px; border: 1px solid #ccc; padding: 15px; border-radius: 6px;">
+                    <h2 style="margin: 0 0 10px 0; background: #f3f4f6; padding: 5px;">PARTAI ${p.partaiNum} (${p.type})</h2>
+                    <div style="display: flex; justify-content: space-between; font-weight: bold;">
+                        <div>${p.teamL} (${p.playersL})</div>
+                        <div style="color: #666;">VS</div>
+                        <div>${p.teamR} (${p.playersR})</div>
+                    </div>
+                    <table class="pdf-table">
+                        <thead><tr style="background:#f9fafb;"><th>SET</th><th>SKOR ${p.teamL}</th><th>SKOR ${p.teamR}</th></tr></thead>
+                        <tbody>${tableRows}</tbody>
+                    </table>
+                    <p style="margin-top: 10px; font-weight: bold; color: #059669;">Pemenang Partai: ${p.winner}</p>
+                </div>
+            `;
+            container.innerHTML += partaiBlock;
+        });
+
+        const element = document.getElementById('pdf-recap');
+        element.style.display = 'block'; 
+        
+        html2pdf().set({
+            margin: 0.5, filename: 'Rekapan_Total_3Partai.pdf',
+            image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 },
+            jsPDF: { unit: 'in', format: 'a4', orientation: 'landscape' }
+        }).from(element).save().then(() => { element.style.display = 'none'; });
+    }
+
+    updateRules();
+    updateMatchType();
 });
 </script>
 </body>
