@@ -6,12 +6,11 @@
     <title>Lobby Wasit - Pilih Lapangan</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #111827; color: white; display: flex; flex-direction: column; align-items: center; padding: 50px 20px; }
+        body { font-family: 'Segoe UI', sans-serif; background: #111827; color: white; display: flex; flex-direction: column; align-items: center; padding: 50px 20px; text-align: center; }
         h1 { color: #10b981; }
         .court-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; width: 100%; max-width: 800px; margin-top: 30px; }
-        .court-card { background: #1f2937; padding: 20px; border-radius: 10px; text-align: center; border: 2px solid #374151; transition: 0.3s; }
-        .btn-enter { background: #3b82f6; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-size: 1.1rem; font-weight: bold; width: 100%; margin-top: 15px; }
-        .btn-enter:hover { background: #2563eb; }
+        .court-card { background: #1f2937; padding: 20px; border-radius: 10px; border: 2px solid #374151; }
+        .btn-enter { background: #3b82f6; color: white; border: none; padding: 10px; border-radius: 5px; cursor: pointer; width: 100%; margin-top: 15px; font-weight: bold; }
         .locked { border-color: #ef4444; opacity: 0.7; }
         .btn-locked { background: #ef4444; cursor: not-allowed; }
     </style>
@@ -19,79 +18,52 @@
 <body>
 
     <h1>🏸 Lobi Pemilihan Lapangan</h1>
-    <p>Silakan pilih lapangan yang tersedia untuk memulai penjurian.</p>
-
-    <div class="court-grid" id="court-container">
-        <p>Memuat data lapangan dari server...</p>
+    <div id="court-container" class="court-grid">
+        <p style="color: #fcd34d;">Memuat data lapangan...</p>
     </div>
 
 <script>
-    // MASUKKAN URL DAN KEY SUPABASE ANDA DI BAWAH INI
-    const SUPABASE_URL = 'https://vbpldrhwkuhstvtdoebm.supabase.co/rest/v1/'; 
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZicGxkcmh3a3Voc3R2dGRvZWJtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMzOTUwOTIsImV4cCI6MjA5ODk3MTA5Mn0.mxbHlUuJqJAbNB1KR2Zo3htIDHfiiGA2NS0lAG_krW8'; 
-    
-    // Perbaikan Error: Variabel sekarang bernama "db"
-    const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-    async function loadCourts() {
-        // Menggunakan "db"
-        const { data, error } = await db.from('courts').select('*').order('id', { ascending: true });
+    document.addEventListener("DOMContentLoaded", () => {
+        // --- UBAH DUA BARIS INI DENGAN DATA SUPABASE ANDA ---
+        const SUPABASE_URL = 'https://vbpldrhwkuhstvtdoebm.supabase.co/rest/v1/'; 
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZicGxkcmh3a3Voc3R2dGRvZWJtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMzOTUwOTIsImV4cCI6MjA5ODk3MTA5Mn0.mxbHlUuJqJAbNB1KR2Zo3htIDHfiiGA2NS0lAG_krW8'; 
         
-        if (error) {
-            console.error('Error fetching courts:', error);
-            return;
-        }
-
+        const myAppDb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         const container = document.getElementById('court-container');
-        container.innerHTML = '';
 
-        data.forEach(court => {
-            const isLocked = court.is_locked;
-            const card = document.createElement('div');
-            card.className = `court-card ${isLocked ? 'locked' : ''}`;
+        async function loadCourts() {
+            const { data, error } = await myAppDb.from('courts').select('*').order('id', { ascending: true });
+            if (error) { container.innerHTML = `<p>Error: ${error.message}</p>`; return; }
             
-            card.innerHTML = `
-                <h2>${court.name}</h2>
-                <p style="color: ${isLocked ? '#ef4444' : '#10b981'}; font-weight: bold;">
-                    ${isLocked ? '🔴 SEDANG DIPAKAI' : '🟢 KOSONG'}
-                </p>
-                <button class="btn-enter ${isLocked ? 'btn-locked' : ''}" 
-                        onclick="enterCourt(${court.id}, ${isLocked})" 
-                        ${isLocked ? 'disabled' : ''}>
-                    ${isLocked ? 'Terkunci' : 'Masuk & Kunci Lapangan'}
-                </button>
-            `;
-            container.appendChild(card);
-        });
-    }
-
-    async function enterCourt(courtId, isLocked) {
-        if (isLocked) return;
-
-        // Menggunakan "db"
-        const { error } = await db
-            .from('courts')
-            .update({ is_locked: true })
-            .eq('id', courtId);
-
-        if (error) {
-            alert('Gagal mengunci lapangan. Silakan coba lagi.');
-            return;
+            container.innerHTML = '';
+            data.forEach(court => {
+                const isLocked = court.is_locked;
+                const card = document.createElement('div');
+                card.className = `court-card ${isLocked ? 'locked' : ''}`;
+                card.innerHTML = `
+                    <h2>${court.name}</h2>
+                    <p style="color: ${isLocked ? '#ef4444' : '#10b981'}; font-weight: bold;">
+                        ${isLocked ? '🔴 SEDANG DIPAKAI' : '🟢 KOSONG'}
+                    </p>
+                    <button class="btn-enter ${isLocked ? 'btn-locked' : ''}" 
+                            onclick="window.enterCourt(${court.id}, ${isLocked})" 
+                            ${isLocked ? 'disabled' : ''}>
+                        ${isLocked ? 'Terkunci' : 'Masuk Lapangan'}
+                    </button>
+                `;
+                container.appendChild(card);
+            });
         }
 
-        // Pindah ke Halaman Scoreboard membawa ID lapangan
-        window.location.href = `scoreboard.html?court_id=${courtId}`;
-    }
+        window.enterCourt = async function(courtId, isLocked) {
+            if (isLocked) return;
+            await myAppDb.from('courts').update({ is_locked: true }).eq('id', courtId);
+            window.location.href = `scoreboard.html?court_id=${courtId}`;
+        };
 
-    // Subscribe ke realtime updates (agar lobi update otomatis tanpa refresh)
-    // Menggunakan "db"
-    db.channel('custom-all-channel')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'courts' }, payload => {
-          loadCourts();
-      })
-      .subscribe();
-
-    loadCourts();
+        myAppDb.channel('custom-all-channel').on('postgres_changes', { event: '*', schema: 'public', table: 'courts' }, payload => { loadCourts(); }).subscribe();
+        loadCourts();
+    });
 </script>
 </body>
 </html>
