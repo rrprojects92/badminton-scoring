@@ -3,145 +3,56 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Scoreboard Badminton Pro v7</title>
+    <title>Scoreboard Badminton Pro v7.1</title>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
     <style>
         :root { --primary: #10b981; --dark: #111827; --panel: #1f2937; --court-bg: #059669; --court-line: #064e3b; }
-        
-        html, body {
-            margin: 0; padding: 0; width: 100vw; height: 100vh;
-            background-color: var(--dark); color: white;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            overflow: hidden; box-sizing: border-box;
-        }
+        html, body { margin: 0; padding: 0; width: 100vw; height: 100vh; background-color: var(--dark); color: white; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; overflow: hidden; box-sizing: border-box; }
         * { box-sizing: border-box; }
-
-        /* Start Screen */
-        #start-screen {
-            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-            background: rgba(17, 24, 39, 0.95); z-index: 99999;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-        }
-        .btn-start {
-            background: var(--primary); color: white; border: none; padding: 20px 40px;
-            font-size: 1.5rem; font-weight: bold; border-radius: 10px; cursor: pointer;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3); transition: 0.2s;
-        }
-
-        #portrait-warning {
-            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: var(--dark); color: #fcd34d; z-index: 100000;
-            align-items: center; justify-content: center; text-align: center;
-            flex-direction: column; padding: 20px; font-size: 1.5rem; font-weight: bold;
-        }
-        @media (orientation: portrait) {
-            #portrait-warning { display: flex; }
-            #start-screen, .container { display: none !important; }
-        }
-
-        .container {
-            display: flex; flex-direction: column; justify-content: space-between;
-            width: 100%; height: 100%; max-width: 1450px; margin: 0 auto; padding: 6px;
-        }
-
-        /* Top Bar */
-        .top-bar {
-            display: flex; justify-content: space-between; align-items: center;
-            background-color: var(--panel); padding: 6px 12px; border-radius: 8px; gap: 8px;
-            height: 12%; min-height: 45px;
-        }
+        #start-screen { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(17, 24, 39, 0.95); z-index: 99999; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .btn-start { background: var(--primary); color: white; border: none; padding: 20px 40px; font-size: 1.5rem; font-weight: bold; border-radius: 10px; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.3); transition: 0.2s; }
+        #portrait-warning { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--dark); color: #fcd34d; z-index: 100000; align-items: center; justify-content: center; text-align: center; flex-direction: column; padding: 20px; font-size: 1.5rem; font-weight: bold; }
+        @media (orientation: portrait) { #portrait-warning { display: flex; } #start-screen, .container { display: none !important; } }
+        .container { display: flex; flex-direction: column; justify-content: space-between; width: 100%; height: 100%; max-width: 1450px; margin: 0 auto; padding: 6px; }
+        .top-bar { display: flex; justify-content: space-between; align-items: center; background-color: var(--panel); padding: 6px 12px; border-radius: 8px; gap: 8px; height: 12%; min-height: 45px; }
         .settings-group { display: flex; flex-direction: column; gap: 1px; flex: 1; }
         .settings-group label { font-size: 0.65rem; color: #9ca3af; }
-        .settings-group select, .settings-group input {
-            padding: 4px; border-radius: 4px; border: 1px solid #4b5563; background: var(--dark); color: white;
-            font-size: 0.75rem; width: 100%;
-        }
-        
-        .timer-container {
-            flex: 0.8; text-align: center; background: #000; padding: 2px 8px;
-            border-radius: 6px; border: 1px solid #374151; display: flex; flex-direction: column; justify-content: center;
-        }
+        .settings-group select, .settings-group input { padding: 4px; border-radius: 4px; border: 1px solid #4b5563; background: var(--dark); color: white; font-size: 0.75rem; width: 100%; }
+        .timer-container { flex: 0.8; text-align: center; background: #000; padding: 2px 8px; border-radius: 6px; border: 1px solid #374151; display: flex; flex-direction: column; justify-content: center; }
         .timer-display { font-size: 1.1rem; font-weight: bold; font-family: monospace; color: #10b981;}
         .timer-controls button { background: #374151; color: white; border: none; padding: 1px 6px; border-radius: 3px; cursor: pointer; font-size: 0.65rem; }
-
-        /* Scoreboard (Lapangan Utama) */
-        .scoreboard {
-            display: flex; justify-content: space-between; background-color: var(--court-bg);
-            padding: 8px; border-radius: 10px; position: relative;
-            height: 60%; margin: 4px 0; border: 4px solid white;
-        }
-        
-        .net-divider {
-            width: 6px; background: repeating-linear-gradient(to bottom, #cbd5e1, #cbd5e1 4px, transparent 4px, transparent 8px);
-            border-left: 2px solid white; border-right: 2px solid white; height: 100%; opacity: 0.8; margin: 0 5px;
-        }
-
-        .tv-widget {
-            position: absolute; top: 5px; left: 10px; background: rgba(0,0,0,0.85);
-            padding: 4px 8px; border-radius: 4px; border-left: 3px solid #fcd34d;
-            font-family: monospace; font-size: 0.75rem; color: white; z-index: 10;
-        }
+        .scoreboard { display: flex; justify-content: space-between; background-color: var(--court-bg); padding: 8px; border-radius: 10px; position: relative; height: 60%; margin: 4px 0; border: 4px solid white; }
+        .net-divider { width: 6px; background: repeating-linear-gradient(to bottom, #cbd5e1, #cbd5e1 4px, transparent 4px, transparent 8px); border-left: 2px solid white; border-right: 2px solid white; height: 100%; opacity: 0.8; margin: 0 5px; }
+        .tv-widget { position: absolute; top: 5px; left: 10px; background: rgba(0,0,0,0.85); padding: 4px 8px; border-radius: 4px; border-left: 3px solid #fcd34d; font-family: monospace; font-size: 0.75rem; color: white; z-index: 10; }
         .tv-row { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 2px; }
         .tv-row.active-set { color: #fcd34d; font-weight: bold; }
-
-        .team {
-            flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: space-between;
-            width: 48%; position: relative;
-        }
-        
-        .team-name-input {
-            background: rgba(0,0,0,0.4); border: none; border-bottom: 2px solid #fcd34d;
-            color: white; text-align: center; font-size: clamp(0.9rem, 3.5vh, 1.2rem); font-weight: bold; 
-            width: 100%; text-transform: uppercase; padding: 4px;
-        }
-
-        /* LAYOUT LAPANGAN */
-        .real-court {
-            display: flex; flex-direction: column; width: 100%; flex: 1;
-            border: 2px solid white; background-color: var(--court-line); margin: 4px 0;
-        }
-        .court-half {
-            flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
-            position: relative; padding: 2px; transition: 0.3s;
-        }
+        .team { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: space-between; width: 48%; position: relative; }
+        .team-name-input { background: rgba(0,0,0,0.4); border: none; border-bottom: 2px solid #fcd34d; color: white; text-align: center; font-size: clamp(0.9rem, 3.5vh, 1.2rem); font-weight: bold; width: 100%; text-transform: uppercase; padding: 4px; }
+        .real-court { display: flex; flex-direction: column; width: 100%; flex: 1; border: 2px solid white; background-color: var(--court-line); margin: 4px 0; }
+        .court-half { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; padding: 2px; transition: 0.3s; }
         .court-half.border-middle { border-top: 2px dashed rgba(255,255,255,0.7); }
         .court-half.active-server { background: rgba(253, 224, 71, 0.25); box-shadow: inset 0 0 10px #fde047; }
-        
         .court-label { position: absolute; top: 2px; left: 5px; font-size: 0.5rem; color: rgba(255,255,255,0.5); font-weight: bold; }
         .serve-badge { display: none; position: absolute; top: 2px; right: 5px; background: #fde047; color: black; font-size: 0.55rem; font-weight: bold; padding: 1px 4px; border-radius: 3px; }
         .active-server .serve-badge { display: block; }
-        
         .player-input { background: transparent; border: none; border-bottom: 1px solid rgba(255,255,255,0.4); color: white; text-align: center; width: 85%; font-size: clamp(0.75rem, 2.3vh, 0.95rem); font-weight: bold; z-index: 2;}
-
-        .btn-first-serve {
-            background: #f59e0b; color: white; border: none; padding: 3px 8px; border-radius: 4px; 
-            font-size: 0.65rem; font-weight: bold; margin-top: 2px; cursor: pointer; z-index: 2;
-        }
-
+        .btn-first-serve { background: #f59e0b; color: white; border: none; padding: 3px 8px; border-radius: 4px; font-size: 0.65rem; font-weight: bold; margin-top: 2px; cursor: pointer; z-index: 2; }
         .score-row { display: flex; align-items: center; justify-content: space-between; width: 100%; gap: 8px; }
         .score { font-size: clamp(2rem, 16vh, 7rem); font-weight: bold; line-height: 0.8; width: 35%; text-align: center;}
         .btn-point { background: #3b82f6; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: clamp(0.8rem, 2.5vh, 1.1rem); padding: 8px; flex: 1; height: 100%; box-shadow: 0 3px 0 #2563eb;}
         .btn-point:active { transform: translateY(2px); box-shadow: none; }
-        
-        /* Session & Status Panel */
-        .status-panel { 
-            text-align: center; display: flex; justify-content: space-between; align-items: center; 
-            background: rgba(0,0,0,0.3); padding: 4px 15px; border-radius: 6px; height: 10%;
-        }
+        .status-panel { text-align: center; display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.3); padding: 4px 15px; border-radius: 6px; height: 10%; }
         #status-text { font-size: clamp(0.8rem, 2.5vh, 1.1rem); font-weight: bold; color: #fcd34d; text-align: left; flex: 1;}
         .partai-tracker { font-size: 0.75rem; color: #9ca3af; text-align: right; padding-right: 15px; font-family: monospace; }
         #btn-next-partai { display: none; background: #10b981; color: white; padding: 6px 12px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 0.8rem;}
-
-        /* Bottom Controls */
         .bottom-controls { display: flex; gap: 8px; justify-content: center; align-items: center; background: var(--panel); padding: 6px; border-radius: 8px; height: 10%; min-height: 40px;}
         .btn-bottom { padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 0.75rem; white-space: nowrap; }
         .shuttle-box { display: flex; align-items: center; gap: 4px; background: #374151; padding: 4px 8px; border-radius: 4px; color: #9ca3af; font-size: 0.75rem;}
         .shuttle-box button { background: #4b5563; color: white; border: none; border-radius: 50%; width: 22px; height: 22px; cursor: pointer; }
         #shuttle-count { font-weight: bold; color: white; width: 15px; text-align: center; }
-
         #pdf-recap { display: none; background: white; color: black; padding: 30px; width: 100%; }
         .pdf-table { width: 100%; border-collapse: collapse; margin-top: 15px; text-align: center; }
         .pdf-table th, .pdf-table td { border: 1px solid black; padding: 8px; }
@@ -158,7 +69,7 @@
             <label>Mode Poin</label>
             <select id="game-mode" onchange="updateRules()">
                 <option value="21">Standar BWF (21)</option>
-                <option value="42">Custom (42)</option>
+                <option value="42">Custom (42 - 1 Set Selesai)</option>
             </select>
         </div>
         <div class="settings-group" style="flex: 0.6;">
@@ -266,42 +177,20 @@
 
 <script>
 document.addEventListener("DOMContentLoaded", () => {
-    // --- 1. KONEKSI CLOUD SUPABASE ---
+    // --- UBAH URL & KEY SUPABASE DI BAWAH INI ---
     const SUPABASE_URL = 'https://vbpldrhwkuhstvtdoebm.supabase.co'; 
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZicGxkcmh3a3Voc3R2dGRvZWJtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMzOTUwOTIsImV4cCI6MjA5ODk3MTA5Mn0.mxbHlUuJqJAbNB1KR2Zo3htIDHfiiGA2NS0lAG_krW8'; // Silakan isi dengan Anon Key Supabase Anda
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZicGxkcmh3a3Voc3R2dGRvZWJtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMzOTUwOTIsImV4cCI6MjA5ODk3MTA5Mn0.mxbHlUuJqJAbNB1KR2Zo3htIDHfiiGA2NS0lAG_krW8'; 
+    
     const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     const courtId = new URLSearchParams(window.location.search).get('court_id');
 
     if (!courtId) { alert("Akses ditolak! Silakan masuk melalui halaman Lobi."); window.location.href = 'index.html'; }
 
-    // --- 2. STATE UTAMA (Mendukung Multi-Partai & Tunggal/Ganda) ---
     let WIN_SCORE = 21, MAX_SCORE = 30;
-    
-    // State Sesi Global (Menyimpan riwayat 3 partai)
-    window.sessionState = {
-        currentPartai: 1,
-        partaiHistory: [], // Menyimpan rekapan data partai 1, 2, 3
-        totalShuttlecocks: 0,
-        totalTimeSeconds: 0
-    };
-
-    // State Pertandingan yang sedang aktif saat ini
-    window.state = {
-        scores: { L: 0, R: 0 },
-        servingTeam: null,
-        matchType: "ganda",
-        players: {
-            L: { right: "Pemain 1", left: "Pemain 2" },
-            R: { right: "Pemain 3", left: "Pemain 4" }
-        },
-        currentSet: 1,
-        setHistory: [], // Histori set pada partai aktif saat ini
-        gameFinished: false
-    };
-
+    window.sessionState = { currentPartai: 1, partaiHistory: [], totalShuttlecocks: 0, totalTimeSeconds: 0 };
+    window.state = { scores: { L: 0, R: 0 }, servingTeam: null, matchType: "ganda", players: { L: { right: "Pemain 1", left: "Pemain 2" }, R: { right: "Pemain 3", left: "Pemain 4" } }, currentSet: 1, setHistory: [], gameFinished: false };
     let historyStack = [];
 
-    // --- 3. INTERAKSI CLOUD & SISTEM ---
     window.exitAndUnlock = async function() {
         if(confirm("Keluar dari papan skor? Lapangan akan dikosongkan.")) {
             await db.from('courts').update({ is_locked: false, match_state: null }).eq('id', courtId);
@@ -319,8 +208,7 @@ document.addEventListener("DOMContentLoaded", () => {
         let elem = document.documentElement;
         if (elem.requestFullscreen) { elem.requestFullscreen(); } 
         document.getElementById('start-screen').style.display = 'none';
-        startTimer();
-        renderUI();
+        startTimer(); renderUI();
     };
 
     window.updateRules = function() {
@@ -332,18 +220,12 @@ document.addEventListener("DOMContentLoaded", () => {
     window.updateMatchType = function() {
         let type = document.getElementById('match-type').value;
         window.state.matchType = type;
-        
-        // Sesuaikan form input nama pemain secara visual
         if(type === "tunggal") {
-            document.getElementById('player-L-left').style.visibility = 'hidden';
-            document.getElementById('player-R-left').style.visibility = 'hidden';
-            document.getElementById('label-L-left').innerText = "KOSONG";
-            document.getElementById('label-R-left').innerText = "KOSONG";
+            document.getElementById('player-L-left').style.visibility = 'hidden'; document.getElementById('player-R-left').style.visibility = 'hidden';
+            document.getElementById('label-L-left').innerText = "KOSONG"; document.getElementById('label-R-left').innerText = "KOSONG";
         } else {
-            document.getElementById('player-L-left').style.visibility = 'visible';
-            document.getElementById('player-R-left').style.visibility = 'visible';
-            document.getElementById('label-L-left').innerText = "KIRI (GANJIL)";
-            document.getElementById('label-R-left').innerText = "KIRI (GANJIL)";
+            document.getElementById('player-L-left').style.visibility = 'visible'; document.getElementById('player-R-left').style.visibility = 'visible';
+            document.getElementById('label-L-left').innerText = "KIRI (GANJIL)"; document.getElementById('label-R-left').innerText = "KIRI (GANJIL)";
         }
         renderUI();
     };
@@ -357,112 +239,63 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    function saveState() {
-        historyStack.push(JSON.stringify({ s: window.state, ss: window.sessionState }));
-    }
+    function saveState() { historyStack.push(JSON.stringify({ s: window.state, ss: window.sessionState })); }
 
     window.undo = function() {
         if (historyStack.length > 0) { 
             let previous = JSON.parse(historyStack.pop());
-            window.state = previous.s;
-            window.sessionState = previous.ss;
-            renderUI(); 
-            syncToCloud();
+            window.state = previous.s; window.sessionState = previous.ss;
+            renderUI(); syncToCloud();
         }
     };
 
-    // --- 4. LOGIKA PERHITUNGAN SKOR & PERPINDAHAN PEMEBAIN ---
     window.setFirstServe = function(team) { 
-        readPlayersFromUI();
-        saveState(); 
-        window.state.servingTeam = team; 
-        renderUI(); 
-        syncToCloud();
+        readPlayersFromUI(); saveState(); window.state.servingTeam = team; renderUI(); syncToCloud();
     };
 
     window.addPoint = function(teamWon) {
         if (!window.state.servingTeam) { alert("Tentukan siapa yang melakukan servis awal terlebih dahulu!"); return; }
         if (window.state.gameFinished) return;
-        
-        readPlayersFromUI();
-        saveState();
-        
+        readPlayersFromUI(); saveState();
         if (window.state.matchType === "ganda") {
-            // ATURAN GANDA BWF
             if (window.state.servingTeam === teamWon) {
                 window.state.scores[teamWon]++;
-                let temp = window.state.players[teamWon].right;
-                window.state.players[teamWon].right = window.state.players[teamWon].left;
-                window.state.players[teamWon].left = temp;
-            } else {
-                window.state.scores[teamWon]++; 
-                window.state.servingTeam = teamWon;
-            }
-        } else {
-            // ATURAN TUNGGAL BWF (Pemain Otomatis Bergeser Sesuai Poin Genap/Ganjil)
-            window.state.scores[teamWon]++;
-            window.state.servingTeam = teamWon;
-        }
-        
-        renderUI();
-        syncToCloud();
+                let temp = window.state.players[teamWon].right; window.state.players[teamWon].right = window.state.players[teamWon].left; window.state.players[teamWon].left = temp;
+            } else { window.state.scores[teamWon]++; window.state.servingTeam = teamWon; }
+        } else { window.state.scores[teamWon]++; window.state.servingTeam = teamWon; }
+        renderUI(); syncToCloud();
     };
 
-    // --- 5. RENDER UI & WIDGET TV ---
     function renderTVWidget() {
         let widget = document.getElementById('tv-widget');
         let html = '';
-        
-        window.state.setHistory.forEach(set => { 
-            html += `<div class="tv-row"><span>SET ${set.set}</span> <span>${set.scoreL} - ${set.scoreR}</span></div>`; 
-        });
-        
+        window.state.setHistory.forEach(set => { html += `<div class="tv-row"><span>SET ${set.set}</span> <span>${set.scoreL} - ${set.scoreR}</span></div>`; });
         html += `<div class="tv-row active-set"><span>SET ${window.state.currentSet}</span> <span>${window.state.scores.L} - ${window.state.scores.R}</span></div>`;
         widget.innerHTML = html;
     }
 
     function renderUI() {
-        // Tampilkan Skor Utama
         document.getElementById('score-L').innerText = window.state.scores.L;
         document.getElementById('score-R').innerText = window.state.scores.R;
         document.getElementById('shuttle-count').innerText = window.sessionState.totalShuttlecocks;
         document.getElementById('partai-tracker').innerText = `Sesi: Partai ${window.sessionState.currentPartai} / 3 (${window.state.matchType.toUpperCase()})`;
 
-        // Atur posisi penulisan nama pemain pada Tunggal vs Ganda
         if(window.state.matchType === "tunggal") {
-            // Sisi Tunggal Kiri
-            if(window.state.scores.L % 2 === 0) {
-                document.getElementById('player-L-right').value = window.state.players.L.right;
-                document.getElementById('player-L-left').value = "";
-            } else {
-                document.getElementById('player-L-left').value = window.state.players.L.right;
-                document.getElementById('player-L-right').value = "";
-            }
-            // Sisi Tunggal Kanan
-            if(window.state.scores.R % 2 === 0) {
-                document.getElementById('player-R-right').value = window.state.players.R.right;
-                document.getElementById('player-R-left').value = "";
-            } else {
-                document.getElementById('player-R-left').value = window.state.players.R.right;
-                document.getElementById('player-R-right').value = "";
-            }
+            if(window.state.scores.L % 2 === 0) { document.getElementById('player-L-right').value = window.state.players.L.right; document.getElementById('player-L-left').value = ""; } 
+            else { document.getElementById('player-L-left').value = window.state.players.L.right; document.getElementById('player-L-right').value = ""; }
+            if(window.state.scores.R % 2 === 0) { document.getElementById('player-R-right').value = window.state.players.R.right; document.getElementById('player-R-left').value = ""; } 
+            else { document.getElementById('player-R-left').value = window.state.players.R.right; document.getElementById('player-R-right').value = ""; }
         } else {
-            document.getElementById('player-L-right').value = window.state.players.L.right;
-            document.getElementById('player-L-left').value = window.state.players.L.left;
-            document.getElementById('player-R-right').value = window.state.players.R.right;
-            document.getElementById('player-R-left').value = window.state.players.R.left;
+            document.getElementById('player-L-right').value = window.state.players.L.right; document.getElementById('player-L-left').value = window.state.players.L.left;
+            document.getElementById('player-R-right').value = window.state.players.R.right; document.getElementById('player-R-left').value = window.state.players.R.left;
         }
 
-        // Tampilkan/Sembunyikan tombol servis awal
         if (!window.state.servingTeam && !window.state.gameFinished) {
-            document.getElementById('btn-serve-L').style.display = 'block';
-            document.getElementById('btn-serve-R').style.display = 'block';
+            document.getElementById('btn-serve-L').style.display = 'block'; document.getElementById('btn-serve-R').style.display = 'block';
         } else {
-            document.getElementById('btn-serve-L').style.display = 'none';
-            document.getElementById('btn-serve-R').style.display = 'none';
+            document.getElementById('btn-serve-L').style.display = 'none'; document.getElementById('btn-serve-R').style.display = 'none';
         }
 
-        // Beri Blok Kuning (Highlight) pada Pemain yang Servis
         document.querySelectorAll('.court-half').forEach(b => b.classList.remove('active-server'));
         if (window.state.servingTeam && !window.state.gameFinished) {
             let currentScore = window.state.scores[window.state.servingTeam];
@@ -470,8 +303,7 @@ document.addEventListener("DOMContentLoaded", () => {
             document.getElementById(`box-${window.state.servingTeam}-${activeSide}`).classList.add('active-server');
         }
 
-        renderTVWidget();
-        checkStatus();
+        renderTVWidget(); checkStatus();
     }
 
     function checkStatus() {
@@ -480,25 +312,20 @@ document.addEventListener("DOMContentLoaded", () => {
         
         if(!window.state.servingTeam && !window.state.gameFinished) { 
             status.innerText = `Partai ${window.sessionState.currentPartai} - Set ${window.state.currentSet}: Tentukan Servis Awal`; 
-            btnNextPartai.style.display = 'none';
-            return; 
+            btnNextPartai.style.display = 'none'; return; 
         }
         
         let diff = Math.abs(window.state.scores.L - window.state.scores.R);
         window.state.gameFinished = false;
 
-        // Kondisi Deuce (Jus)
         if (window.state.scores.L >= WIN_SCORE - 1 && window.state.scores.R >= WIN_SCORE - 1 && diff === 0) {
-            status.innerText = "🔥 DEUCE (JUS) 🔥";
-            btnNextPartai.style.display = 'none';
+            status.innerText = "🔥 DEUCE (JUS) 🔥"; btnNextPartai.style.display = 'none';
         } 
-        // Kondisi Set Selesai (Mencapai skor kemenangan)
         else if (((window.state.scores.L >= WIN_SCORE || window.state.scores.R >= WIN_SCORE) && diff >= 2) || (window.state.scores.L === MAX_SCORE || window.state.scores.R === MAX_SCORE)) {
             
             window.state.gameFinished = true;
             let setWinner = window.state.scores.L > window.state.scores.R ? 'L' : 'R';
             
-            // Simpan riwayat set yang baru selesai
             window.state.setHistory.push({
                 set: window.state.currentSet,
                 scoreL: window.state.scores.L,
@@ -506,19 +333,21 @@ document.addEventListener("DOMContentLoaded", () => {
                 winner: setWinner
             });
 
-            // Hitung total kemenangan set untuk partai ini (Best of 3)
             let winL = window.state.setHistory.filter(x => x.winner === 'L').length;
             let winR = window.state.setHistory.filter(x => x.winner === 'R').length;
 
-            if (winL === 2 || winR === 2) {
-                let namaPemenang = winL === 2 ? document.getElementById('name-L').value : document.getElementById('name-R').value;
-                status.innerText = `🏆 MATCH GAME OVER! Dimenangkan oleh ${namaPemenang}`;
-                btnNextPartai.style.display = 'block'; // Tampilkan tombol simpan partai ke database
+            // LOGIKA PENENTUAN JUMLAH SET UNTUK MENANG PARTAI
+            let mode = document.getElementById('game-mode').value;
+            let setsNeededToWin = (mode === "21") ? 2 : 1; 
+
+            if (winL === setsNeededToWin || winR === setsNeededToWin) {
+                let namaPemenang = winL === setsNeededToWin ? document.getElementById('name-L').value : document.getElementById('name-R').value;
+                status.innerText = `🏆 PARTAI SELESAI! Dimenangkan oleh ${namaPemenang}`;
+                btnNextPartai.style.display = 'block'; 
             } else {
-                // Jika masih 1-1, lanjut ke set berikutnya otomatis
                 window.state.currentSet++;
                 window.state.scores = { L: 0, R: 0 };
-                window.state.servingTeam = setWinner; // Pemenang set sebelumnya berhak servis
+                window.state.servingTeam = setWinner; 
                 window.state.gameFinished = false;
                 alert(`Set ${window.state.currentSet - 1} Selesai. Bersiap masuk ke Set ${window.state.currentSet}!`);
                 renderUI();
@@ -529,20 +358,18 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    // --- 6. MANAJEMEN MULTI-PARTAI (Sesi 1, 2, 3) ---
     window.saveAndNextPartai = function() {
-        saveState();
-        readPlayersFromUI();
+        saveState(); readPlayersFromUI();
 
-        // Ambil pemenang final partai ini
+        let mode = document.getElementById('game-mode').value;
+        let setsNeededToWin = (mode === "21") ? 2 : 1;
+
         let winL = window.state.setHistory.filter(x => x.winner === 'L').length;
-        let finalWinner = winL === 2 ? document.getElementById('name-L').value : document.getElementById('name-R').value;
+        let finalWinner = winL === setsNeededToWin ? document.getElementById('name-L').value : document.getElementById('name-R').value;
 
-        // Ambil detail nama pemain untuk rekapan laporan
         let pL = window.state.matchType === 'ganda' ? `${window.state.players.L.right} & ${window.state.players.L.left}` : window.state.players.L.right;
         let pR = window.state.matchType === 'ganda' ? `${window.state.players.R.right} & ${window.state.players.R.left}` : window.state.players.R.right;
 
-        // Masukkan data partai aktif ke dalam database history sesi
         window.sessionState.partaiHistory.push({
             partaiNum: window.sessionState.currentPartai,
             type: window.state.matchType.toUpperCase(),
@@ -555,64 +382,45 @@ document.addEventListener("DOMContentLoaded", () => {
         });
 
         if (window.sessionState.currentPartai < 3) {
-            // Lanjut ke nomor partai berikutnya, bersihkan papan skor
             window.sessionState.currentPartai++;
             window.state = {
-                scores: { L: 0, R: 0 },
-                servingTeam: null,
+                scores: { L: 0, R: 0 }, servingTeam: null,
                 matchType: document.getElementById('match-type').value,
                 players: { L: { right: "Pemain 1", left: "Pemain 2" }, R: { right: "Pemain 3", left: "Pemain 4" } },
-                currentSet: 1,
-                setHistory: [],
-                gameFinished: false
+                currentSet: 1, setHistory: [], gameFinished: false
             };
             alert(`Data Partai Berhasil Disimpan! Silakan input nama pemain untuk Partai Ke-${window.sessionState.currentPartai}.`);
-            renderUI();
-            syncToCloud();
+            renderUI(); syncToCloud();
         } else {
             alert("Seluruh sesi (3 Partai) telah selesai dimainkan! Silakan unduh rekapan PDF total.");
-            renderUI();
-            syncToCloud();
+            renderUI(); syncToCloud();
         }
     };
 
     window.swapCourtsUI = function() {
-        readPlayersFromUI();
-        saveState();
+        readPlayersFromUI(); saveState();
         let nameL = document.getElementById('name-L').value; let nameR = document.getElementById('name-R').value;
         document.getElementById('name-L').value = nameR; document.getElementById('name-R').value = nameL;
-        
         let tempScore = window.state.scores.L; window.state.scores.L = window.state.scores.R; window.state.scores.R = tempScore;
         let tempPlayers = window.state.players.L; window.state.players.L = window.state.players.R; window.state.players.R = tempPlayers;
-        
-        if(window.state.servingTeam === 'L') window.state.servingTeam = 'R'; 
-        else if(window.state.servingTeam === 'R') window.state.servingTeam = 'L';
-        
-        renderUI();
-        syncToCloud();
+        if(window.state.servingTeam === 'L') window.state.servingTeam = 'R'; else if(window.state.servingTeam === 'R') window.state.servingTeam = 'L';
+        renderUI(); syncToCloud();
     };
 
     window.resetMatch = function() {
         if(confirm("Yakin ingin mengulang skor Partai ini dari awal (0-0)?")) {
-            window.state.scores = { L: 0, R: 0 };
-            window.state.servingTeam = null;
-            window.state.currentSet = 1;
-            window.state.setHistory = [];
-            window.state.gameFinished = false;
-            renderUI();
-            syncToCloud();
+            window.state.scores = { L: 0, R: 0 }; window.state.servingTeam = null; window.state.currentSet = 1; window.state.setHistory = []; window.state.gameFinished = false;
+            renderUI(); syncToCloud();
         }
     };
 
-    // --- 7. TIMING & SHUTTLECOCK CONTROLS ---
     let timerInterval, isTimerRunning = false;
     function startTimer() { 
         if (!isTimerRunning) { 
             isTimerRunning = true; 
             timerInterval = setInterval(() => { 
                 window.sessionState.totalTimeSeconds++; 
-                let m = Math.floor(window.sessionState.totalTimeSeconds / 60).toString().padStart(2, '0');
-                let s = (window.sessionState.totalTimeSeconds % 60).toString().padStart(2, '0');
+                let m = Math.floor(window.sessionState.totalTimeSeconds / 60).toString().padStart(2, '0'); let s = (window.sessionState.totalTimeSeconds % 60).toString().padStart(2, '0');
                 document.getElementById('timer-display').innerText = `${m}:${s}`; 
             }, 1000); 
         } 
@@ -621,7 +429,6 @@ document.addEventListener("DOMContentLoaded", () => {
     window.resetTimer = function() { window.pauseTimer(); window.sessionState.totalTimeSeconds = 0; document.getElementById('timer-display').innerText = "00:00"; };
     window.changeShuttle = function(val) { saveState(); window.sessionState.totalShuttlecocks += val; if(window.sessionState.totalShuttlecocks < 0) window.sessionState.totalShuttlecocks = 0; renderUI(); syncToCloud(); };
 
-    // --- 8. GENERATE UNDUHAN REKAP PDF (3 PARTAI) ---
     window.downloadPDF = function() {
         document.getElementById('pdf-officials').innerText = document.getElementById('officials').value || "-";
         document.getElementById('pdf-duration').innerText = document.getElementById('timer-display').innerText;
@@ -630,20 +437,14 @@ document.addEventListener("DOMContentLoaded", () => {
         let container = document.getElementById('pdf-partai-content');
         container.innerHTML = '';
 
-        // Gabungkan riwayat partai lama dengan partai yang sedang aktif (jika ada poin)
         let totalPartaiList = [...window.sessionState.partaiHistory];
         if (window.state.scores.L > 0 || window.state.scores.R > 0 || window.state.setHistory.length > 0) {
             let pL = window.state.matchType === 'ganda' ? `${window.state.players.L.right} & ${window.state.players.L.left}` : window.state.players.L.right;
             let pR = window.state.matchType === 'ganda' ? `${window.state.players.R.right} & ${window.state.players.R.left}` : window.state.players.R.right;
             totalPartaiList.push({
-                partaiNum: window.sessionState.currentPartai,
-                type: window.state.matchType.toUpperCase(),
-                teamL: document.getElementById('name-L').value,
-                teamR: document.getElementById('name-R').value,
-                playersL: pL,
-                playersR: pR,
-                sets: [...window.state.setHistory],
-                winner: "BELUM SELESAI"
+                partaiNum: window.sessionState.currentPartai, type: window.state.matchType.toUpperCase(),
+                teamL: document.getElementById('name-L').value, teamR: document.getElementById('name-R').value,
+                playersL: pL, playersR: pR, sets: [...window.state.setHistory], winner: "BELUM SELESAI"
             });
         }
 
@@ -651,10 +452,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         totalPartaiList.forEach(p => {
             let tableRows = '';
-            p.sets.forEach(s => {
-                tableRows += `<tr><td>Set ${s.set}</td><td>${s.scoreL}</td><td>${s.scoreR}</td></tr>`;
-            });
-            // Jika set terakhir sedang running dan belum masuk setHistory
+            p.sets.forEach(s => { tableRows += `<tr><td>Set ${s.set}</td><td>${s.scoreL}</td><td>${s.scoreR}</td></tr>`; });
             if(p.winner === "BELUM SELESAI" && (window.state.scores.L > 0 || window.state.scores.R > 0)) {
                 tableRows += `<tr><td>Set ${window.state.currentSet} (Running)</td><td>${window.state.scores.L}</td><td>${window.state.scores.R}</td></tr>`;
             }
@@ -663,9 +461,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 <div style="margin-top: 25px; border: 1px solid #ccc; padding: 15px; border-radius: 6px;">
                     <h2 style="margin: 0 0 10px 0; background: #f3f4f6; padding: 5px;">PARTAI ${p.partaiNum} (${p.type})</h2>
                     <div style="display: flex; justify-content: space-between; font-weight: bold;">
-                        <div>${p.teamL} (${p.playersL})</div>
-                        <div style="color: #666;">VS</div>
-                        <div>${p.teamR} (${p.playersR})</div>
+                        <div>${p.teamL} (${p.playersL})</div><div style="color: #666;">VS</div><div>${p.teamR} (${p.playersR})</div>
                     </div>
                     <table class="pdf-table">
                         <thead><tr style="background:#f9fafb;"><th>SET</th><th>SKOR ${p.teamL}</th><th>SKOR ${p.teamR}</th></tr></thead>
@@ -677,18 +473,12 @@ document.addEventListener("DOMContentLoaded", () => {
             container.innerHTML += partaiBlock;
         });
 
-        const element = document.getElementById('pdf-recap');
-        element.style.display = 'block'; 
-        
-        html2pdf().set({
-            margin: 0.5, filename: 'Rekapan_Total_3Partai.pdf',
-            image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 },
-            jsPDF: { unit: 'in', format: 'a4', orientation: 'landscape' }
+        const element = document.getElementById('pdf-recap'); element.style.display = 'block'; 
+        html2pdf().set({ margin: 0.5, filename: 'Rekapan_Total_3Partai.pdf', image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 }, jsPDF: { unit: 'in', format: 'a4', orientation: 'landscape' }
         }).from(element).save().then(() => { element.style.display = 'none'; });
     }
 
-    updateRules();
-    updateMatchType();
+    updateRules(); updateMatchType();
 });
 </script>
 </body>
