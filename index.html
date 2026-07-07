@@ -27,12 +27,17 @@
 
 <script>
     // MASUKKAN URL DAN KEY SUPABASE ANDA DI SINI
+   // const SUPABASE_URL = 'https://vbpldrhwkuhstvtdoebm.supabase.co/rest/v1/'; 
+  //  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZicGxkcmh3a3Voc3R2dGRvZWJtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMzOTUwOTIsImV4cCI6MjA5ODk3MTA5Mn0.mxbHlUuJqJAbNB1KR2Zo3htIDHfiiGA2NS0lAG_krW8'; 
+   // GANTI DENGAN URL & KEY ANDA
     const SUPABASE_URL = 'https://vbpldrhwkuhstvtdoebm.supabase.co/rest/v1/'; 
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZicGxkcmh3a3Voc3R2dGRvZWJtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMzOTUwOTIsImV4cCI6MjA5ODk3MTA5Mn0.mxbHlUuJqJAbNB1KR2Zo3htIDHfiiGA2NS0lAG_krW8'; 
-    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    
+    // Perbaikan: Ubah nama variabel menjadi "db"
+    const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     async function loadCourts() {
-        const { data, error } = await supabase.from('courts').select('*').order('id', { ascending: true });
+        const { data, error } = await db.from('courts').select('*').order('id', { ascending: true });
         
         if (error) {
             console.error('Error fetching courts:', error);
@@ -65,8 +70,7 @@
     async function enterCourt(courtId, isLocked) {
         if (isLocked) return;
 
-        // 1. Kunci Lapangan di Database
-        const { error } = await supabase
+        const { error } = await db
             .from('courts')
             .update({ is_locked: true })
             .eq('id', courtId);
@@ -76,12 +80,11 @@
             return;
         }
 
-        // 2. Pindah ke Halaman Scoreboard membawa ID lapangan
         window.location.href = `scoreboard.html?court_id=${courtId}`;
     }
 
-    // Subscribe ke realtime updates (agar lobi update otomatis tanpa refresh)
-    supabase.channel('custom-all-channel')
+    // Subscribe ke realtime updates
+    db.channel('custom-all-channel')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'courts' }, payload => {
           loadCourts();
       })
